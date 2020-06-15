@@ -6,4 +6,7 @@
  {:filename "versions.edn"}
 
  :updog.github-file-provider/file-provider
- {}}
+ {}
+
+ :updog.logging/timbre-logger
+ {:log-level :debug}}
