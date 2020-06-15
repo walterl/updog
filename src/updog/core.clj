@@ -1,7 +1,10 @@
 (ns updog.core
+  (:require [integrant.core :as ig])
   (:gen-class))
 
 (defn -main
-  "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (-> (slurp (or (first args) "config.edn"))
+      ig/read-string
+      ig/prep
+      ig/init))

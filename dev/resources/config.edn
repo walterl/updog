@@ -1,0 +1,9 @@
+{:updog.updater/single-run-updater
+ {:file-providers [#ig/ref :updog.github-file-provider/file-provider]
+  :versions-db    #ig/ref :updog.edn-versions-db/versions-db}
+
+ :updog.edn-versions-db/versions-db
+ {:filename "versions.edn"}
+
+ :updog.github-file-provider/file-provider
+ {}}
