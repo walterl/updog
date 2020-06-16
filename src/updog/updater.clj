@@ -79,7 +79,7 @@
     [_]
     (apps-db/initialize! db)
     (doseq [[app-key app-data] (seq (apps-db/get-all-apps db))
-            :let [source         (source-of-type source (:source app-data))
+            :let [source         (source-of-type sources (:source app-data))
                   latest-version (app-source/fetch-latest-version! source app-data)]]
       (update-file db (assoc app-data :app-key app-key) latest-version))))
 
