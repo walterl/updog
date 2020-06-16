@@ -38,13 +38,17 @@
     ;; Create empty versions DB if it doesn't exist
     (when-not (.exists (io/file filename))
       (log/debugf "Initializing apps DB" filename)
-      (spit-edn! filename {:apps {}})
-      (log/debug "Done.")))
+      (spit-edn! filename {:apps {}})))
 
   (assoc-app!
     [_ app-key app-data]
     (with-updating-edn-file filename [edn]
       (assoc-in edn [:apps app-key] app-data)))
+
+  (assoc-field!
+    [_ app-key field value]
+    (with-updating-edn-file filename [edn]
+      (assoc-in edn [:apps app-key field] value)))
 
   (dissoc-app!
     [_ app-key]
@@ -59,12 +63,7 @@
   (get-all-apps
     [_]
     (with-edn-file filename [edn]
-      (:apps edn)))
-
-  (update-app!
-    [_ app-key field value]
-    (with-updating-edn-file filename [edn]
-      (update-in edn [:apps app-key field] value))))
+      (:apps edn))))
 
 (defmethod ig/init-key ::app-db
   [_ config]
