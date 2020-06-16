@@ -41,6 +41,35 @@
       (= :unzip post-proc) (unzip local-path parent-dir)
       (string? post-proc)  (exec! local-path parent-dir post-proc))))
 
+(defn- source-of-type
+  [sources source-type]
+  (some #(when (= source-type (app-source/source-type %))
+           %)
+        sources))
+
+(defn- update-file
+  [db
+   {current-version :version
+    app-key         :app-key
+    app-name        :name
+    local-path      :local-path
+    :as app-data}
+   {latest-version :version
+    :keys [download-url]}]
+  (if (newer-version? latest-version current-version)
+    (do
+      (log/infof "App %s/%s (%s) has newer version: %s"
+                 app-name
+                 app-key
+                 current-version
+                 latest-version)
+      (download-file! download-url local-path)
+      (apps-db/assoc-field! db app-key :version latest-version)
+      (post-process app-data))
+    (log/infof "App %s is at the latest version: %s"
+               app-name
+               current-version)))
+
 (defprotocol Updater
   "File updater protocol."
 
@@ -53,28 +82,9 @@
     [_]
     (apps-db/initialize! db)
     (doseq [[app-key app-data] (seq (apps-db/get-all-apps db))
-            :let [{current-version :version
-                   app-name        :name
-                   app-source      :source
-                   local-path      :local-path} app-data
-                  source         (some #(when (= app-source (app-source/source-type %))
-                                          %)
-                                       sources)
-                  {latest-version :version
-                   download-url   :download-url} (app-source/fetch-latest-version! source app-data)]]
-      (if (newer-version? latest-version current-version)
-        (do
-          (log/infof "App %s/%s (%s) has newer version: %s"
-                     app-name
-                     app-key
-                     current-version
-                     latest-version)
-          (download-file! download-url local-path)
-          (apps-db/assoc-field! db app-key :version latest-version)
-          (post-process app-data))
-        (log/infof "App %s is at the latest version: %s"
-                   app-name
-                   current-version)))))
+            :let [source         (source-of-type source (:source app-data))
+                  latest-version (app-source/fetch-latest-version! source app-data)]]
+      (update-file db (assoc app-data :app-key app-key) latest-version))))
 
 (defmethod ig/init-key ::single-run-updater
   [_ config]
