@@ -5,14 +5,10 @@
             [clojure.string :as str]
             [integrant.core :as ig]
             [me.raynes.fs :as fs]
+            [me.raynes.fs.compression :as fs.comp]
             [taoensso.timbre :as log]
             [updog.apps-db :as apps-db]
             [updog.app-source :as app-source]))
-
-(defn- newer-version?
-  "Is version `a` newer than `b`?"
-  [a b]
-  (pos? (compare a b)))
 
 (defn- download-file!
   [url dest]
@@ -28,9 +24,10 @@
              (str/split #"\s+"))
       :dir dir))
 
-(defn- unzip
-  [zip-file parent-dir]
-  (sh ["unzip" zip-file] :dir parent-dir))
+(defn- newer-version?
+  "Is version `a` newer than `b`?"
+  [a b]
+  (pos? (compare a b)))
 
 (defn- post-process
   [app-data]
@@ -38,7 +35,7 @@
   (let [{:keys [local-path post-proc]} app-data
         parent-dir                     (fs/parent local-path)]
     (cond
-      (= :unzip post-proc) (unzip local-path parent-dir)
+      (= :unzip post-proc) (fs.comp/unzip local-path parent-dir)
       (string? post-proc)  (exec! local-path parent-dir post-proc))))
 
 (defn- source-of-type
