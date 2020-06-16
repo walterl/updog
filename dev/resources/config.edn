@@ -1,11 +1,11 @@
 {:updog.updater/single-run-updater
- {:file-providers [#ig/ref :updog.github-file-provider/file-provider]
-  :versions-db    #ig/ref :updog.edn-versions-db/versions-db}
+ {:db      #ig/ref :updog.apps-db.edn-db/app-db
+  :sources [#ig/ref :updog.app-source.github/app-source]}
 
- :updog.edn-versions-db/versions-db
- {:filename "versions.edn"}
+ :updog.apps-db.edn-db/app-db
+ {:filename "appdb.edn"}
 
- :updog.github-file-provider/file-provider
+ :updog.app-source.github/app-source
  {}
 
  :updog.logging/timbre-logger
