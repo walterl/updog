@@ -28,9 +28,9 @@
         parent-dir                    (fs/parent dest-path)]
     (cond
       (= :unzip post-proc) (fs.comp/unzip downloaded-path parent-dir)
-      (string? post-proc)  (sh (u/command->args post-proc {:dl-file   downloaded-path
-                                                           :dest-file dest-path
-                                                           :dest-dir  parent-dir}))
+      (string? post-proc)  (sh (u/command->sh-args post-proc {:dl-file   downloaded-path
+                                                              :dest-file dest-path
+                                                              :dest-dir  parent-dir}))
       :else                (fs/rename downloaded-path dest-path))))
 
 (defn- source-of-type
