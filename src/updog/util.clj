@@ -1,5 +1,7 @@
 (ns updog.util
-  (:require [clojure.string :as str]
+  (:require [clj-http.client :as http]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
             [me.raynes.fs :as fs]))
 
 (defn- var-key->cmd-var-name
@@ -24,6 +26,12 @@
    (-> command
        (replace-vars vars)
        (str/split #"\s+"))))
+
+(defn download-file!
+  [url dest]
+  (with-open [out (io/output-stream dest)]
+    (io/copy (:body (http/get url {:as :stream}))
+             out)))
 
 (defn temp-file
   []

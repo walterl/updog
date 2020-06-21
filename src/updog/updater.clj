@@ -1,7 +1,5 @@
 (ns updog.updater
-  (:require [clj-http.client :as http]
-            [clojure.java.io :as io]
-            [clojure.java.shell :refer [sh]]
+  (:require [clojure.java.shell :refer [sh]]
             [integrant.core :as ig]
             [me.raynes.fs :as fs]
             [me.raynes.fs.compression :as fs.comp]
@@ -9,12 +7,6 @@
             [updog.apps-db :as apps-db]
             [updog.app-source :as app-source]
             [updog.util :as u]))
-
-(defn- download-file!
-  [url dest]
-  (with-open [out (io/output-stream dest)]
-    (io/copy (:body (http/get url {:as :stream}))
-             out)))
 
 (defn- newer-version?
   "Is version `a` newer than `b`?"
@@ -54,7 +46,7 @@
                  app-key
                  current-version
                  latest-version)
-      (download-file! download-url tmp-dest)
+      (u/download-file! download-url tmp-dest)
       (post-process app-data tmp-dest)
       (apps-db/assoc-field! db app-key :version latest-version))
     (log/infof "App %s is at the latest version: %s"
