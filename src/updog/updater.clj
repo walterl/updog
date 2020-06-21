@@ -2,39 +2,19 @@
   (:require [clj-http.client :as http]
             [clojure.java.io :as io]
             [clojure.java.shell :refer [sh]]
-            [clojure.string :as str]
             [integrant.core :as ig]
             [me.raynes.fs :as fs]
             [me.raynes.fs.compression :as fs.comp]
             [taoensso.timbre :as log]
             [updog.apps-db :as apps-db]
-            [updog.app-source :as app-source]))
+            [updog.app-source :as app-source]
+            [updog.util :as u]))
 
 (defn- download-file!
   [url dest]
   (with-open [out (io/output-stream dest)]
     (io/copy (:body (http/get url {:as :stream}))
              out)))
-
-(defn- var-key->cmd-var-name
-  [k]
-  (-> (name k)
-      (str/replace "-" "_")
-      str/upper-case))
-
-(defn- replace-vars
-  [command vars]
-  (reduce (fn [cmd [k v]]
-            (str/replace cmd (var-key->cmd-var-name k) v))
-          command
-          vars))
-
-(defn- exec!
-  [command vars]
-  ;; TODO Test this
-  (sh (-> command
-          (replace-vars vars)
-          (str/split #"\s+"))))
 
 (defn- newer-version?
   "Is version `a` newer than `b`?"
@@ -48,9 +28,9 @@
         parent-dir                    (fs/parent dest-path)]
     (cond
       (= :unzip post-proc) (fs.comp/unzip downloaded-path parent-dir)
-      (string? post-proc)  (exec! post-proc {:dl-file   downloaded-path
-                                             :dest-file dest-path
-                                             :dest-dir  parent-dir})
+      (string? post-proc)  (sh (u/command->args post-proc {:dl-file   downloaded-path
+                                                           :dest-file dest-path
+                                                           :dest-dir  parent-dir}))
       :else                (fs/rename downloaded-path dest-path))))
 
 (defn- source-of-type
@@ -58,10 +38,6 @@
   (some #(when (= source-type (app-source/source-type %))
            %)
         sources))
-
-(defn- temp-file
-  []
-  (.getPath (fs/temp-file "updog_")))
 
 (defn- update-file
   [db
@@ -72,7 +48,7 @@
    {latest-version :version
     :keys [download-url]}]
   (if (newer-version? latest-version current-version)
-    (let [tmp-dest (temp-file)]
+    (let [tmp-dest (u/temp-file)]
       (log/infof "App %s/%s (%s) has newer version: %s"
                  app-name
                  app-key
