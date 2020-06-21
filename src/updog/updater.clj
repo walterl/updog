@@ -16,13 +16,25 @@
     (io/copy (:body (http/get url {:as :stream}))
              out)))
 
+(defn- var-key->cmd-var-name
+  [k]
+  (-> (name k)
+      (str/replace "-" "_")
+      str/upper-case))
+
+(defn- replace-vars
+  [command vars]
+  (reduce (fn [cmd [k v]]
+            (str/replace cmd (var-key->cmd-var-name k) v))
+          command
+          vars))
+
 (defn- exec!
-  [filename dir command]
+  [command vars]
   ;; TODO Test this
   (sh (-> command
-             (str/replace #"APPFILE" filename)
-             (str/split #"\s+"))
-      :dir dir))
+          (replace-vars vars)
+          (str/split #"\s+"))))
 
 (defn- newer-version?
   "Is version `a` newer than `b`?"
@@ -30,13 +42,16 @@
   (pos? (compare a b)))
 
 (defn- post-process
-  [app-data]
+  [app-data downloaded-path]
   ;; TODO Test this
-  (let [{:keys [local-path post-proc]} app-data
-        parent-dir                     (fs/parent local-path)]
+  (let [{:keys [dest-path post-proc]} app-data
+        parent-dir                    (fs/parent dest-path)]
     (cond
-      (= :unzip post-proc) (fs.comp/unzip local-path parent-dir)
-      (string? post-proc)  (exec! local-path parent-dir post-proc))))
+      (= :unzip post-proc) (fs.comp/unzip downloaded-path parent-dir)
+      (string? post-proc)  (exec! post-proc {:dl-file   downloaded-path
+                                             :dest-file dest-path
+                                             :dest-dir  parent-dir})
+      :else                (fs/rename downloaded-path dest-path))))
 
 (defn- source-of-type
   [sources source-type]
@@ -44,25 +59,28 @@
            %)
         sources))
 
+(defn- temp-file
+  []
+  (.getPath (fs/temp-file "updog_")))
+
 (defn- update-file
   [db
    {current-version :version
     app-key         :app-key
     app-name        :name
-    local-path      :local-path
     :as app-data}
    {latest-version :version
     :keys [download-url]}]
   (if (newer-version? latest-version current-version)
-    (do
+    (let [tmp-dest (temp-file)]
       (log/infof "App %s/%s (%s) has newer version: %s"
                  app-name
                  app-key
                  current-version
                  latest-version)
-      (download-file! download-url local-path)
-      (apps-db/assoc-field! db app-key :version latest-version)
-      (post-process app-data))
+      (download-file! download-url tmp-dest)
+      (post-process app-data tmp-dest)
+      (apps-db/assoc-field! db app-key :version latest-version))
     (log/infof "App %s is at the latest version: %s"
                app-name
                current-version)))
