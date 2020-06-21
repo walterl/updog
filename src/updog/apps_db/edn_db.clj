@@ -65,6 +65,6 @@
     (with-edn-file filename [edn]
       (:apps edn))))
 
-(defmethod ig/init-key ::app-db
+(defmethod ig/init-key ::apps-db
   [_ config]
   (map->EDNAppsDB config))

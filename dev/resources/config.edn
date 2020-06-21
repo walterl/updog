@@ -1,9 +1,9 @@
 {:updog.updater/single-run-updater
- {:db      #ig/ref :updog.apps-db.edn-db/app-db
+ {:db      #ig/ref :updog.apps-db.edn-db/apps-db
   :sources [#ig/ref :updog.app-source.github/app-source]}
 
- :updog.apps-db.edn-db/app-db
- {:filename "appdb.edn"}
+ :updog.apps-db.edn-db/apps-db
+ {:filename "appsdb.edn"}
 
  :updog.app-source.github/app-source
  {}
