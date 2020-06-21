@@ -1,8 +1,8 @@
 (defproject updog "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
-  :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
-            :url "https://www.eclipse.org/legal/epl-2.0/"}
+  :description "Your watchdog for updates of software without updates."
+  :url "https://github.com/walterl/updog"
+  :license {:name "GPLv3"
+            :url "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :dependencies [[cheshire "5.10.0"]
                  [clj-http "3.10.1"]
                  [com.taoensso/timbre "4.10.0"]
