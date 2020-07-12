@@ -6,8 +6,8 @@
   (initialize! [_]
     "Initializes the application database.")
 
-  (assoc-app! [_ app-key app-data]
-    "Adds the `app-data` under the given key.")
+  (assoc-app! [_ app-key app]
+    "Adds the `app` under the given key.")
 
   (assoc-field! [_ app-key field value]
     "Set `value` for `field` of application with key `app-key`.")

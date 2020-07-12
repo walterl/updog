@@ -28,14 +28,14 @@
     :github-release)
 
   (fetch-latest-version!
-    [_ app-data]
-    (log/debug ::fetch-latest-version! app-data)
-    (let [url            (format github-latest-release-url (:repo app-data))
+    [_ app]
+    (log/debug ::fetch-latest-version! app)
+    (let [url            (format github-latest-release-url (:repo app))
           latest-version (-> (slurp url)
                              (json/parse-string true))
-          asset          (some (partial asset-matcher (:asset-selector app-data))
+          asset          (some (partial asset-matcher (:asset-selector app))
                                (:assets latest-version))]
-      {:version      (tag->version (:version-regex app-data)
+      {:version      (tag->version (:version-regex app)
                                    (:tag_name latest-version))
        :filename     (:name asset)
        :download-url (:browser_download_url asset)})))
