@@ -27,9 +27,10 @@
 
 (defn- source-of-type
   [sources source-type]
-  (some #(when (= source-type (app-source/source-type %))
-           %)
-        sources))
+  (or (first (filter #(= source-type (app-source/source-type %))
+                     sources))
+      (throw (ex-info "Source not found!" {:source-type source-type
+                                           :sources     sources}))))
 
 (defn- update-file
   [db
