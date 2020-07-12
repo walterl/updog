@@ -1,4 +1,5 @@
-(ns updog.app-source.github
+(ns updog.app-source.github-release
+  "GitHub releases app source"
   (:require [cheshire.core :as json]
             [integrant.core :as ig]
             [taoensso.timbre :as log]
@@ -20,11 +21,11 @@
       (last (re-matches regex version-tag)))
     version-tag))
 
-(defrecord GithubAppSource []
+(defrecord GithubReleaseSource []
   AppSource
   (source-type
     [_]
-    :github)
+    :github-release)
 
   (fetch-latest-version!
     [_ app-data]
@@ -41,4 +42,4 @@
 
 (defmethod ig/init-key ::app-source
   [_ config]
-  (map->GithubAppSource config))
+  (map->GithubReleaseSource config))
