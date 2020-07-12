@@ -4,8 +4,8 @@
 
 (deftest command->args-tests
   (is (= ["ls"]
-         (u/command->args "ls")))
+         (u/command->sh-args "ls")))
   (is (= ["ls" "-l"]
-         (u/command->args "ls -l")))
+         (u/command->sh-args "ls -l")))
   (is (= ["ls" "-l" "/home/walter"]
-         (u/command->args "ls -l HOME_DIR" {:home-dir "/home/walter"}))))
+         (u/command->sh-args "ls -l HOME_DIR" {:home-dir "/home/walter"}))))
