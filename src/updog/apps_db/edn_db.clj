@@ -41,9 +41,9 @@
       (spit-edn! filename {:apps {}})))
 
   (assoc-app!
-    [_ app-key app-data]
+    [_ app-key app]
     (with-updating-edn-file filename [edn]
-      (assoc-in edn [:apps app-key] app-data)))
+      (assoc-in edn [:apps app-key] app)))
 
   (assoc-field!
     [_ app-key field value]

@@ -20,18 +20,22 @@
 
 (defmethod post-process :default
   [{:keys [dest-path]} downloaded-path]
+  (log/debugf "mv %s %s" downloaded-path dest-path)
   (fs/rename downloaded-path dest-path))
 
 (defmethod post-process :shell-script
   [{:keys [dest-path install-script]} downloaded-path]
-  (sh (u/command->sh-args install-script
-                          {:dl-file   downloaded-path
-                           :dest-file dest-path
-                           :dest-dir  (fs/parent dest-path)})))
+  (let [sh-vars {:dl-file   downloaded-path
+                 :dest-file dest-path
+                 :dest-dir  (fs/parent dest-path)}]
+    (log/debugf "shell: %s %s" sh-vars)
+    (sh (u/command->sh-args install-script sh-vars))))
 
 (defmethod post-process :unzip
   [{:keys [dest-path]} downloaded-path]
-  (fs.comp/unzip downloaded-path (fs/parent dest-path)))
+  (let [dest-dir (fs/parent dest-path)]
+    (log/debugf "unzip %s %s" downloaded-path dest-dir)
+    (fs.comp/unzip downloaded-path dest-dir)))
 
 (defn- source-of-type
   [sources source-type]
@@ -42,21 +46,16 @@
 
 (defn- update-file
   [db
-   {current-version :version
-    app-key         :app-key
-    app-name        :name
-    :as app-data}
-   {latest-version :version
-    :keys [download-url]}]
+   {current-version :version, app-key :app-key, app-name :name, :as app}
+   {:keys [download-url], latest-version :version}]
   (if (newer-version? latest-version current-version)
     (let [tmp-dest (u/temp-file)]
-      (log/infof "App %s/%s (%s) has newer version: %s"
+      (log/infof "App %s %s has newer version: %s"
                  app-name
-                 app-key
                  current-version
                  latest-version)
       (u/download-file! download-url tmp-dest)
-      (post-process app-data tmp-dest)
+      (post-process app tmp-dest)
       (apps-db/assoc-field! db app-key :version latest-version))
     (log/infof "App %s is at the latest version: %s"
                app-name
@@ -72,10 +71,10 @@
   Updater
   (start-update!
     [_]
-    (doseq [[app-key app-data] (seq (apps-db/get-all-apps db))
-            :let [source         (source-of-type sources (:source app-data))
-                  latest-version (app-source/fetch-latest-version! source app-data)]]
-      (update-file db (assoc app-data :app-key app-key) latest-version))))
+    (doseq [[app-key app] (seq (apps-db/get-all-apps db))
+            :let [source         (source-of-type sources (:source app))
+                  latest-version (app-source/fetch-latest-version! source app)]]
+      (update-file db (assoc app :app-key app-key) latest-version))))
 
 (defmethod ig/init-key ::single-run-updater
   [_ config]

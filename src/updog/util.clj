@@ -2,7 +2,8 @@
   (:require [clj-http.client :as http]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [me.raynes.fs :as fs]))
+            [me.raynes.fs :as fs]
+            [taoensso.timbre :as log]))
 
 (defn- var-key->cmd-var-name
   [k]
@@ -29,6 +30,7 @@
 
 (defn download-file!
   [url dest]
+  (log/debugf "Downloading %s → %s" url dest)
   (with-open [out (io/output-stream dest)]
     (io/copy (:body (http/get url {:as :stream}))
              out)))
