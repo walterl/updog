@@ -5,7 +5,7 @@
             [integrant.core :as ig]
             [medley.core :as m]
             [taoensso.timbre :as log]
-            [updog.apps-db :refer [AppsDB]]))
+            [updog.apps-db :refer [AppsDB initialize!]]))
 
 (defn- load-edn-file
   [filename]
@@ -67,4 +67,6 @@
 
 (defmethod ig/init-key ::apps-db
   [_ config]
-  (map->EDNAppsDB config))
+  (let [db (map->EDNAppsDB config)]
+    (initialize! db)
+    db))
