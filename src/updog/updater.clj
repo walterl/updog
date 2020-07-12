@@ -13,17 +13,25 @@
   [a b]
   (pos? (compare a b)))
 
-(defn- post-process
-  [app-data downloaded-path]
-  ;; TODO Test this
-  (let [{:keys [dest-path post-proc]} app-data
-        parent-dir                    (fs/parent dest-path)]
-    (cond
-      (= :unzip post-proc) (fs.comp/unzip downloaded-path parent-dir)
-      (string? post-proc)  (sh (u/command->sh-args post-proc {:dl-file   downloaded-path
-                                                              :dest-file dest-path
-                                                              :dest-dir  parent-dir}))
-      :else                (fs/rename downloaded-path dest-path))))
+(defmulti post-process
+  "Dispatches on app's :post-proc key"
+  (fn [{:keys [post-proc], :as _app} _downloaded-path]
+    post-proc))
+
+(defmethod post-process :default
+  [{:keys [dest-path]} downloaded-path]
+  (fs/rename downloaded-path dest-path))
+
+(defmethod post-process :shell-script
+  [{:keys [dest-path install-script]} downloaded-path]
+  (sh (u/command->sh-args install-script
+                          {:dl-file   downloaded-path
+                           :dest-file dest-path
+                           :dest-dir  (fs/parent dest-path)})))
+
+(defmethod post-process :unzip
+  [{:keys [dest-path]} downloaded-path]
+  (fs.comp/unzip downloaded-path (fs/parent dest-path)))
 
 (defn- source-of-type
   [sources source-type]
