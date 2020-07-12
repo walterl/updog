@@ -5,7 +5,8 @@
             [integrant.core :as ig]
             [medley.core :as m]
             [taoensso.timbre :as log]
-            [updog.apps-db :refer [AppsDB initialize!]]))
+            [updog.apps-db :refer [AppsDB initialize!]]
+            [updog.util :as u]))
 
 (defn- load-edn-file
   [filename]
@@ -36,8 +37,8 @@
   (initialize!
     [_]
     ;; Create empty versions DB if it doesn't exist
+    (log/debug "Initializing apps DB at" filename)
     (when-not (.exists (io/file filename))
-      (log/debugf "Initializing apps DB" filename)
       (spit-edn! filename {:apps {}})))
 
   (assoc-app!
@@ -64,6 +65,10 @@
     [_]
     (with-edn-file filename [edn]
       (:apps edn))))
+
+(defmethod u/->str EDNAppsDB
+  [{:keys [filename]}]
+  (format "EDN:%s" filename))
 
 (defmethod ig/init-key ::apps-db
   [_ config]

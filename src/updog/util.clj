@@ -38,3 +38,11 @@
 (defn temp-file
   []
   (.getPath (fs/temp-file "updog_")))
+
+(defmulti ->str
+  "Creates string representation of argument."
+  class)
+
+(defmethod ->str :default
+  [x]
+  (str x))

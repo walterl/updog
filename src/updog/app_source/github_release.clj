@@ -3,7 +3,8 @@
   (:require [cheshire.core :as json]
             [integrant.core :as ig]
             [taoensso.timbre :as log]
-            [updog.app-source :refer [AppSource]]))
+            [updog.app-source :as app-source]
+            [updog.util :as u]))
 
 (def ^:private github-latest-release-url
   "https://api.github.com/repos/%s/releases/latest")
@@ -22,7 +23,7 @@
     version-tag))
 
 (defrecord GithubReleaseSource []
-  AppSource
+  app-source/AppSource
   (source-type
     [_]
     :github-release)
@@ -39,6 +40,10 @@
                                    (:tag_name latest-version))
        :filename     (:name asset)
        :download-url (:browser_download_url asset)})))
+
+(defmethod u/->str GithubReleaseSource
+  [x]
+  (name (app-source/source-type x)))
 
 (defmethod ig/init-key ::app-source
   [_ config]

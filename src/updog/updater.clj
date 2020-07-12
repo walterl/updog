@@ -77,6 +77,7 @@
       (update-file db (assoc app :app-key app-key) latest-version))))
 
 (defmethod ig/init-key ::single-run-updater
-  [_ config]
-  (log/info "Single run updater:" config)
+  [_ {:keys [db sources], :as config}]
+  (let [source-types (mapv u/->str sources)]
+    (log/infof "Single run updater: db=<%s> sources=%s" (u/->str db) (pr-str source-types)))
   (map->SingleRunUpdater config))
