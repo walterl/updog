@@ -35,7 +35,7 @@
     (io/copy (:body (http/get url {:as :stream}))
              out)))
 
-(defn temp-file
+(defn temp-file-path
   []
   (.getPath (fs/temp-file "updog_")))
 

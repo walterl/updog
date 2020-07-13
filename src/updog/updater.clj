@@ -49,7 +49,7 @@
    {current-version :version, app-key :app-key, app-name :name, :as app}
    {:keys [download-url], latest-version :version}]
   (if (newer-version? latest-version current-version)
-    (let [tmp-dest (u/temp-file)]
+    (let [tmp-dest (u/temp-file-path)]
       (log/infof "App %s %s has newer version: %s"
                  app-name
                  current-version
