@@ -29,7 +29,7 @@
                  :dest-file dest-path
                  :dest-dir  (fs/parent dest-path)}]
     (log/debugf "shell: %s %s" sh-vars)
-    (sh (u/command->sh-args install-script sh-vars))))
+    (apply sh (u/command->sh-args install-script sh-vars))))
 
 (defmethod post-process :unzip
   [{:keys [dest-path]} downloaded-path]
