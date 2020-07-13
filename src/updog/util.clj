@@ -28,6 +28,13 @@
        (replace-vars vars)
        (str/split #"\s+"))))
 
+(defn copy!
+  [src dest]
+  (log/debugf "Copy %s → %s" src dest)
+  (with-open [in  (io/input-stream src)
+              out (io/output-stream dest)]
+    (io/copy in out)))
+
 (defn download-file!
   [url dest]
   (log/debugf "Downloading %s → %s" url dest)

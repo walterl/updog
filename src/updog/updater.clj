@@ -20,8 +20,10 @@
 
 (defmethod post-process :default
   [{:keys [dest-path]} downloaded-path]
-  (log/debugf "mv %s %s" downloaded-path dest-path)
-  (fs/rename downloaded-path dest-path))
+  (log/debugf "cp %s %s" downloaded-path dest-path)
+  (u/copy! downloaded-path dest-path)
+  (log/debugf "chmod u+x %s" dest-path)
+  (fs/chmod "u+x" dest-path))
 
 (defmethod post-process :shell-script
   [{:keys [dest-path install-script]} downloaded-path]
