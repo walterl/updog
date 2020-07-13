@@ -36,10 +36,14 @@
                              (json/parse-string true))
           asset          (some (partial asset-matcher (:asset-selector app))
                                (:assets latest-version))]
-      {:version      (tag->version (:version-regex app)
-                                   (:tag_name latest-version))
-       :filename     (:name asset)
-       :download-url (:browser_download_url asset)})))
+      {:version  (tag->version (:version-regex app)
+                               (:tag_name latest-version))
+       :filename (:name asset)
+       :location (:browser_download_url asset)}))
+
+  (download!
+    [_ {:keys [location]} dest-path]
+    (u/download-file! location dest-path)))
 
 (defmethod u/->str GithubReleaseSource
   [src]
@@ -47,4 +51,5 @@
 
 (defmethod ig/init-key ::app-source
   [_ config]
+  (log/debug "Initializing app source: GitHub release")
   (map->GithubReleaseSource config))

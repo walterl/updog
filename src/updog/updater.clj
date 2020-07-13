@@ -47,16 +47,16 @@
                                            :sources     sources}))))
 
 (defn- update-file
-  [db
+  [db src
    {current-version :version, app-key :app-key, app-name :name, :as app}
-   {:keys [download-url], latest-version :version}]
+   {latest-version :version, :as latest-version-info}]
   (if (newer-version? latest-version current-version)
     (let [tmp-dest (u/temp-file-path)]
       (log/infof "App %s %s has newer version: %s"
                  app-name
                  current-version
                  latest-version)
-      (u/download-file! download-url tmp-dest)
+      (app-source/download! src latest-version-info tmp-dest)
       (post-process app tmp-dest)
       (apps-db/assoc-field! db app-key :version latest-version))
     (log/infof "App %s is at the latest version: %s"
@@ -76,7 +76,7 @@
     (doseq [[app-key app] (seq (apps-db/get-all-apps db))
             :let [source         (source-of-type sources (:source app))
                   latest-version (app-source/fetch-latest-version! source app)]]
-      (update-file db (assoc app :app-key app-key) latest-version))))
+      (update-file db source (assoc app :app-key app-key) latest-version))))
 
 (defmethod ig/init-key ::single-run-updater
   [_ {:keys [db sources], :as config}]
