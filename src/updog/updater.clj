@@ -58,7 +58,7 @@
                                            :sources     sources}))))
 
 (defn- should-update?
-  [{:keys [dest-path version], app-name :name} latest-version]
+  [{:keys [dest-path version], app-name :name} {latest-version :version}]
   (cond
     (not (u/file-exists? dest-path))
     (do
@@ -78,7 +78,7 @@
   [db src
    {:keys [app-key], current-version :version, app-name :name, :as app}
    {latest-version :version, :as latest-version-info}]
-  (if (should-update? app latest-version)
+  (if (should-update? app latest-version-info)
     (let [tmp-dest (u/temp-file-path)]
       (log/infof "Updating app %s to version %s..." app-name latest-version)
       (app-source/download! src latest-version-info tmp-dest)
