@@ -9,11 +9,16 @@
 (defn- bin-version
   "Get bin version from running `cmd --version`."
   [cmd]
-  (-> (sh cmd "--version")
-      :out
-      str/trim
-      (str/split #"\s+")
-      last))
+  (try
+    (when (u/file-exists? cmd)
+      (-> (sh cmd "--version")
+          :out
+          str/trim
+          (str/split #"\s+")
+          last))
+    (catch Throwable ex
+      (log/errorf ex "Failed to get version from `%s --version`" cmd)
+      nil)))
 
 (defrecord LocalBinSource []
   AppSource
