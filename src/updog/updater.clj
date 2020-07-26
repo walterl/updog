@@ -54,16 +54,30 @@
       (throw (ex-info "Source not found!" {:source-type source-type
                                            :sources     sources}))))
 
+(defn- should-update?
+  [{:keys [dest-path version], app-name :name} latest-version]
+  (cond
+    (not (u/file-exists? dest-path))
+    (do
+      (log/debugf "File not found: %s" dest-path)
+      true)
+
+    (newer-version? latest-version version)
+    (do
+      (log/debugf "App %s %s has newer version: %s"
+                  app-name version latest-version)
+      true)
+
+    :else
+    false))
+
 (defn- update-file
   [db src
-   {current-version :version, app-key :app-key, app-name :name, :as app}
+   {:keys [app-key], current-version :version, app-name :name, :as app}
    {latest-version :version, :as latest-version-info}]
-  (if (newer-version? latest-version current-version)
+  (if (should-update? app latest-version)
     (let [tmp-dest (u/temp-file-path)]
-      (log/infof "App %s %s has newer version: %s"
-                 app-name
-                 current-version
-                 latest-version)
+      (log/infof "Updating app %s to version %s..." app-name latest-version)
       (app-source/download! src latest-version-info tmp-dest)
       (doseq [k (get app :post-proc [])]
         (post-process k app tmp-dest))
@@ -86,7 +100,10 @@
     (doseq [[app-key app] (seq (apps-db/get-all-apps db))
             :let [source         (source-of-type sources (:source app))
                   latest-version (app-source/fetch-latest-version! source app)]]
-      (update-file db source (assoc app :app-key app-key) latest-version))))
+      (try
+        (update-file db source (assoc app :app-key app-key) latest-version)
+        (catch Throwable ex
+          (log/errorf ex "Failed to update app %s" app-key))))))
 
 (defmethod ig/init-key ::single-run-updater
   [_ {:keys [db sources], :as config}]
