@@ -9,9 +9,10 @@
             [updog.util :as u]))
 
 (defn- newer-version?
-  "Is version `a` newer than `b`?"
+  "Is version `a` newer than `b`? Always returns `true` if `b` is nil."
   [a b]
-  (pos? (compare a b)))
+  (or (nil? b)
+      (pos? (compare a b))))
 
 (defmulti post-process
   "Dispatches on app's :post-proc key"
