@@ -15,19 +15,26 @@
       (pos? (compare a b))))
 
 (defmulti post-process
-  "Dispatches on app's :post-proc key"
-  (fn [{:keys [post-proc], :as _app} _downloaded-path]
+  "Dispatches on the first argument, which whould be a value from the app's
+  `:post-proc` key."
+  (fn [post-proc _app _downloaded-path]
     post-proc))
 
 (defmethod post-process :default
-  [{:keys [dest-path]} downloaded-path]
-  (log/debugf "cp %s %s" downloaded-path dest-path)
-  (u/copy! downloaded-path dest-path)
+  [k _ _]
+  (log/warnf "Don't know how to handle post-processing key: %s" k))
+
+(defmethod post-process :copy
+  [_ {:keys [dest-path]} downloaded-path]
+  (u/copy! downloaded-path dest-path))
+
+(defmethod post-process :chmod+x
+  [_ {:keys [dest-path]} _downloaded-path]
   (log/debugf "chmod u+x %s" dest-path)
   (fs/chmod "u+x" dest-path))
 
 (defmethod post-process :shell-script
-  [{:keys [dest-path install-script]} downloaded-path]
+  [_ {:keys [dest-path install-script]} downloaded-path]
   (let [sh-vars {:dl-file   downloaded-path
                  :dest-file dest-path
                  :dest-dir  (fs/parent dest-path)}]
@@ -35,7 +42,7 @@
     (apply sh (u/command->sh-args install-script sh-vars))))
 
 (defmethod post-process :unzip
-  [{:keys [dest-path]} downloaded-path]
+  [_ {:keys [dest-path]} downloaded-path]
   (let [dest-dir (fs/parent dest-path)]
     (log/debugf "unzip %s %s" downloaded-path dest-dir)
     (fs.comp/unzip downloaded-path dest-dir)))
@@ -58,8 +65,10 @@
                  current-version
                  latest-version)
       (app-source/download! src latest-version-info tmp-dest)
-      (post-process app tmp-dest)
-      (apps-db/assoc-field! db app-key :version latest-version))
+      (doseq [k (get app :post-proc [])]
+        (post-process k app tmp-dest))
+      (apps-db/assoc-field! db app-key :version latest-version)
+      (log/infof "App %s updated to version %s" app-name latest-version))
     (log/infof "App %s is at the latest version: %s"
                app-name
                current-version)))
