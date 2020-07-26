@@ -83,7 +83,10 @@
       (log/infof "Updating app %s to version %s..." app-name latest-version)
       (app-source/download! src latest-version-info tmp-dest)
       (doseq [k (get app :post-proc [])]
-        (post-process k app tmp-dest))
+        (try
+          (post-process k app tmp-dest)
+          (catch Throwable ex
+            (log/errorf ex "App %s post-proc %s failed" app-name k))))
       (apps-db/assoc-field! db app-key :version latest-version)
       (log/infof "App %s updated to version %s" app-name latest-version))
     (log/infof "App %s is at the latest version: %s"
