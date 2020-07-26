@@ -35,6 +35,9 @@
 
   (download!
     [_ {:keys [location]} dest-path]
+    (when-not (u/file-exists? location)
+      (throw (ex-info "Local file does not exist" {:type     ::local-file-missing
+                                                   :filename location})))
     (u/copy! location dest-path)))
 
 (defmethod u/->str LocalBinSource
