@@ -34,12 +34,15 @@
   (fs/chmod "u+x" dest-path))
 
 (defmethod post-process :shell-script
-  [_ {:keys [dest-path install-script]} downloaded-path]
+  [_ {:keys [dest-path shell-script], :as app} downloaded-path]
+  (when-not shell-script
+    (throw (ex-info "Shell script missing" {:type ::missing-shell-script
+                                            :app  app})))
   (let [sh-vars {:dl-file   downloaded-path
                  :dest-file dest-path
-                 :dest-dir  (fs/parent dest-path)}]
-    (log/debugf "shell: %s %s" sh-vars)
-    (apply sh (u/command->sh-args install-script sh-vars))))
+                 :dest-dir  (str (fs/parent dest-path))}]
+    (log/debugf "shell: %s %s" shell-script sh-vars)
+    (apply sh (u/command->sh-args shell-script sh-vars))))
 
 (defmethod post-process :unzip
   [_ {:keys [dest-path]} downloaded-path]
