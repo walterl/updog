@@ -3,14 +3,14 @@
   :url "https://github.com/walterl/updog"
   :license {:name "GPLv3"
             :url "https://www.gnu.org/licenses/gpl-3.0.en.html"}
-  :dependencies [[cheshire "5.10.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
+                 [cheshire "5.10.0"]
+                 [clj-commons/fs "1.5.2"]
                  [clj-http "3.10.1"]
                  [com.taoensso/timbre "4.10.0"]
                  [integrant "0.8.0"]
                  [integrant/repl "0.3.1"]
-                 [me.raynes/fs "1.4.6"]
-                 [medley "1.3.0"]
-                 [org.clojure/clojure "1.10.1"]]
+                 [medley "1.3.0"]]
   :main ^:skip-aot updog.core
   :target-path "target/%s"
 
