@@ -29,6 +29,7 @@
        (str/split #"\s+"))))
 
 (defn copy!
+  "Copy local file `src` to `dest`."
   [src dest]
   (log/debugf "Copy %s → %s" src dest)
   (with-open [in  (io/input-stream src)
@@ -36,6 +37,7 @@
     (io/copy in out)))
 
 (defn download-file!
+  "Download `url` to `dest`."
   [url dest]
   (log/debugf "Downloading %s → %s" url dest)
   (with-open [out (io/output-stream dest)]
@@ -43,8 +45,14 @@
              out)))
 
 (defn temp-file-path
+  "Returns path to temp file."
   []
   (.getPath (fs/temp-file "updog_")))
+
+(defn file-exists?
+  "Test if `filename` exists."
+  [filename]
+  (.exists (io/file filename)))
 
 (defmulti ->str
   "Creates string representation of argument."
