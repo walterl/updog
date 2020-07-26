@@ -20,7 +20,10 @@
 
 (defn command->sh-args
   "Prepare `command` for use as `args` vector for `clojure.java.shell/sh`,
-  replacing given vars. See tests for use cases."
+  replacing given vars. See tests for use cases.
+
+  => (command->sh-args \"echo FOO_BAR\" {:foo-bar \"var value\"})
+  \"echo var value\""
   ([command]
    (command->sh-args command {}))
   ([command vars]
