@@ -29,8 +29,7 @@
   (fetch-latest-version-data!
     [_ {:keys [asset-selector version-regex] :as app}]
     (log/debug ::fetch-latest-version-data! app)
-    (let [repo           (get-in app [:github :repo])
-          url            (format github-latest-release-url repo)
+    (let [url            (format github-latest-release-url (:github-repo app))
           latest-version (-> (slurp url) (json/parse-string true))
           asset          (some (partial asset-matcher asset-selector)
                                (:assets latest-version))]
