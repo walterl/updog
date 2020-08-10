@@ -1,7 +1,8 @@
 {:updog.updater/single-run-updater
  {:db      #ig/ref :updog.apps-db.edn-db/apps-db
   :sources [#ig/ref :updog.app-source.github-release/app-source
-            #ig/ref :updog.app-source.local-bin/app-source]}
+            #ig/ref :updog.app-source.local-bin/app-source
+            #ig/ref :updog.app-source.local-zip/app-source]}
 
  :updog.apps-db.edn-db/apps-db
  {:filename "appsdb.edn"}
@@ -10,6 +11,9 @@
  {}
 
  :updog.app-source.local-bin/app-source
+ {}
+
+ :updog.app-source.local-zip/app-source
  {}
 
  :updog.logging/timbre-logger
