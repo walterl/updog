@@ -24,26 +24,25 @@
 
 (defrecord GithubReleaseSource []
   AppSource
-  (source-type
-    [_]
-    :github-release)
+  (source-type [_] :github-release)
 
-  (fetch-latest-version!
-    [_ app]
-    (log/debug ::fetch-latest-version! app)
-    (let [url            (format github-latest-release-url (:repo app))
-          latest-version (-> (slurp url)
-                             (json/parse-string true))
-          asset          (some (partial asset-matcher (:asset-selector app))
+  (fetch-latest-version-data!
+    [_ {:keys [asset-selector version-regex] :as app}]
+    (log/debug ::fetch-latest-version-data! app)
+    (let [repo           (get-in app [:github :repo])
+          url            (format github-latest-release-url repo)
+          latest-version (-> (slurp url) (json/parse-string true))
+          asset          (some (partial asset-matcher asset-selector)
                                (:assets latest-version))]
-      {:version  (tag->version (:version-regex app)
-                               (:tag_name latest-version))
+      {:version  (tag->version version-regex (:tag_name latest-version))
        :filename (:name asset)
        :location (:browser_download_url asset)}))
 
   (download!
-    [_ {:keys [location]} dest-path]
-    (u/download-file! location dest-path)))
+    [_ {:keys [latest-version tmp-dir] :as app}]
+    (let [tmp-path (str tmp-dir "/" (:filename latest-version))]
+      (u/download-file! (:location latest-version) tmp-path)
+      tmp-path)))
 
 (defmethod u/->str GithubReleaseSource
   [src]

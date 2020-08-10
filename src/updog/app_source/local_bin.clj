@@ -1,44 +1,29 @@
 (ns updog.app-source.local-bin
-  (:require [clojure.java.shell :refer [sh]]
-            [clojure.string :as str]
-            [integrant.core :as ig]
+  (:require [integrant.core :as ig]
+            [me.raynes.fs :as fs]
             [taoensso.timbre :as log]
             [updog.app-source :refer [AppSource source-type]]
             [updog.util :as u]))
 
-(defn- bin-version
-  "Get bin version from running `cmd --version`."
-  [cmd]
-  (try
-    (when (u/file-exists? cmd)
-      (-> (sh cmd "--version")
-          :out
-          str/trim
-          (str/split #"\s+")
-          last))
-    (catch Throwable ex
-      (log/errorf ex "Failed to get version from `%s --version`" cmd)
-      nil)))
-
 (defrecord LocalBinSource []
   AppSource
-  (source-type
-    [_]
-    :local-bin)
+  (source-type [_] :local-bin)
 
-  (fetch-latest-version!
+  (fetch-latest-version-data!
     [_ {:keys [local-bin], :as app}]
-    (log/debug ::fetch-latest-version! app)
-    {:version  (bin-version local-bin)
-     :filename local-bin
+    (log/debug ::fetch-latest-version-data! app)
+    {:version  (u/cmd-version local-bin)
+     :filename (last (fs/split local-bin))
      :location local-bin})
 
   (download!
-    [_ {:keys [location]} dest-path]
-    (when-not (u/file-exists? location)
+    [_ {:keys [tmp-dir], {:keys [location filename]} :latest-version}]
+    (when-not (fs/exists? location)
       (throw (ex-info "Local file does not exist" {:type     ::local-file-missing
                                                    :filename location})))
-    (u/copy! location dest-path)))
+    (let [tmp-path (str tmp-dir "/" filename)]
+      (u/copy! location tmp-path)
+      tmp-path)))
 
 (defmethod u/->str LocalBinSource
   [src]

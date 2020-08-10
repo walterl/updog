@@ -7,11 +7,16 @@
   (source-type [_]
     "Should return a constant keyword identifying the source type.")
 
-  (fetch-latest-version! [_ app]
-    "Fetch the latest version of the `app` with the given data.")
+  (fetch-latest-version-data! [_ app]
+    "Fetch the latest version of the `app` with the given data.
 
-  (download! [_ version-info dest-path]
-    "Download the file from `(:location version-info)` to `dest-path`."))
+    Return value will be `assoc`ed under `:latest-version` key of `app`, and
+    should contain whatever data `download!` needs to download the the latest
+    version.")
+
+  (download! [_ app]
+    "Download the file for the latest version of `app`. Must return `app`, with
+    `:install-file` value - the file to be installed - `assoc`ed in."))
 
 (defmethod u/->str AppSource
   [src]
