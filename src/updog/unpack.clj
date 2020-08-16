@@ -3,19 +3,22 @@
             [updog.util :as u]))
 
 (defmulti unpack-action
-  "Unpack downloaded app, dispatched on `action`."
+  "Unpack downloaded app, dispatched on `action`.
+  App's downloaded file/package is at `(:downloaded _app)."
   (fn [_app action] action))
 
 (defmethod unpack-action :default
-  [_app action]
-  (log/errorf "Unknown unpack action:" action))
+  [app action]
+  (throw (ex-info "Unknown unpack action" {:action action, :app app})))
 
 (defmethod unpack-action :no-unpack
   [{:keys [downloaded]} _]
+  (log/debug ::no-unpack {:downloaded downloaded})
   downloaded)
 
 (defmethod unpack-action :unzip
   [{:keys [downloaded tmp-dir]} _]
+  (log/debug ::unzip {:downloaded downloaded, :tmp-dir tmp-dir})
   (first (u/unzipped-files downloaded tmp-dir "unpack-")))
 
 (defn unpack-app!

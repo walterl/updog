@@ -11,7 +11,8 @@
 
   (fetch-latest-version-data!
     [_ {:keys [local-zip tmp-dir] :as app}]
-    (log/debug ::fetch-latest-version! app)
+    (log/debug ::fetch-latest-version-data!
+               (select-keys app [:local-zip :name :tmp-dir]))
     (try
       (let [bin-path (first (u/unzipped-files local-zip tmp-dir))]
         (u/chmod+x bin-path)
@@ -24,10 +25,20 @@
         {:error ::file-not-found})))
 
   (download!
-    [_ {:keys [bin-path tmp-dir], {:keys [location]} :latest-version}]
+    [_ {:keys [app-key bin-path tmp-dir], {:keys [location]} :latest-version}]
     (if (fs/exists? bin-path)
-      bin-path
-      (first (u/unzipped-files location tmp-dir)))))
+      (do
+        (log/debug ::download! {:app-key app-key
+                                :src     bin-path
+                                :dest    bin-path
+                                :status  ::already-exists})
+        bin-path)
+      (do
+        (log/debug ::download! {:app-key app-key
+                                :src     location
+                                :dest    :dest
+                                :status  ::unzip})
+        (first (u/unzipped-files location tmp-dir))))))
 
 (defmethod u/->str LocalZipSource
   [src]

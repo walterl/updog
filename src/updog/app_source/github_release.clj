@@ -27,9 +27,10 @@
   (source-type [_] :github-release)
 
   (fetch-latest-version-data!
-    [_ {:keys [asset-selector version-regex] :as app}]
-    (log/debug ::fetch-latest-version-data! app)
-    (let [url            (format github-latest-release-url (:github-repo app))
+    [_ {:keys [asset-selector github-repo version-regex] :as app}]
+    (log/debug ::fetch-latest-version-data-data!
+               (select-keys app [:github-repo :name]))
+    (let [url            (format github-latest-release-url github-repo)
           latest-version (-> (slurp url) (json/parse-string true))
           asset          (some (partial asset-matcher asset-selector)
                                (:assets latest-version))]
@@ -38,9 +39,14 @@
        :location (:browser_download_url asset)}))
 
   (download!
-    [_ {:keys [latest-version tmp-dir] :as app}]
-    (let [tmp-path (str tmp-dir "/" (:filename latest-version))]
-      (u/download-file! (:location latest-version) tmp-path)
+    [_ {:keys [app-key tmp-dir]
+        {:keys [filename location]} :latest-version
+        :as app}]
+    (let [tmp-path (str tmp-dir "/" filename)]
+      (log/debug ::download! {:app-key app-key
+                              :src     location
+                              :dest    tmp-path})
+      (u/download-file! location tmp-path)
       tmp-path)))
 
 (defmethod u/->str GithubReleaseSource
