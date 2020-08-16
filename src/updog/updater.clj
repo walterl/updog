@@ -73,16 +73,18 @@
   [{:keys [source], app-name :name, {last-version :version} :version, :as app}]
   (let [latest-version (app-source/fetch-latest-version-data! source app)
         app            (init-update (assoc app :latest-version latest-version))]
-    (if (has-latest-version? app)
-      (if (should-update? app)
-        (u/assoc-f app
-                   :downloaded   #(source-dispatch % app-source/download!)
-                   :install-file unpack/unpack-app!
-                   :installed    install!
-                   :post-install post-install/post-install-app!
-                   :db-updated   update-db!)
-        (log/infof "App %s is at the latest version: %s" app-name last-version))
-      (log/warnf "Unable to find latest version for %s" app-name))))
+    (when-not (has-latest-version? app)
+      (throw (ex-info (format "Unable to find latest version for %s" app-name)
+                      {:type ::no-latest-version
+                       :app  app})))
+    (if (should-update? app)
+      (u/assoc-f app
+                 :downloaded   #(source-dispatch % app-source/download!)
+                 :install-file unpack/unpack-app!
+                 :installed    install!
+                 :post-install post-install/post-install-app!
+                 :db-updated   update-db!)
+      (log/infof "App %s is at the latest version: %s" app-name last-version))))
 
 (defprotocol Updater
   "File updater protocol."
