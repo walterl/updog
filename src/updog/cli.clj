@@ -25,6 +25,10 @@
     :get  {:usage   (str "updog get [<options>] [<app-key> [<app-key>...]]\n\n"
                          "Output details of all/specified apps.")
            :options [["-h" "--help" "Display help for get command and exit."]]}
+    :set  {:usage   (str "updog set <app-key> <field> <value>\n\n"
+                         "Update app's field value.")
+           :options [["-E" "--edn" "Parse value as EDN."]
+                     ["-h" "--help" "Display help for set command and exit."]]}
     :add  {:usage   (str/join \newline
                               ["updog add [<options>] <app-key>"
                                ""
@@ -100,19 +104,19 @@
     (cond-> (apps-db/get-all-apps db)
       (seq arguments) (select-keys (map keyword arguments)))))
 
-(defn- try-as-edn
-  [x]
-  (try
-    (edn/read-string x)
-    (catch Throwable _
-      (str x))))
-
 (defmethod command! :set
-  [sys _ {:keys [arguments]}]
-  (let [{:keys [db]}          (::updater/single-run-updater sys)
+  [sys _ {:keys [arguments], :as options}]
+  (let [{:keys [db]}    (::updater/single-run-updater sys)
         app-key         (args->app-key arguments)
-        [_ field value] arguments]
-    (get-in (apps-db/assoc-field! db app-key field (try-as-edn value))
+        [_ field value] arguments
+        err-data        {:system sys, :cmd :rm, :options options}
+        value           (cond-> value
+                          (get-in options [:options :edn]) edn/read-string)]
+    (error-on-invalid-app-key! err-data)
+    (when-not field
+      (throw (ex-info "No field specified"
+                      (assoc err-data :type ::missing-field))))
+    (get-in (apps-db/assoc-field! db app-key field value)
             [:apps app-key])))
 
 (defmethod command! :run
