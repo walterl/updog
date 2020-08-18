@@ -13,18 +13,18 @@
   [["-c" "--config" "EDN configuration file to use."
     :default  "dev/resources/config.edn"
     :validate [fs/exists?]]
-   ["-v" "--verbose" "Be verbose."]
+   ["-v" "--verbose" "Enable verbose output (set log level to debug)."]
    ["-h" "--help" "Display help text and exit."]] )
 
 (def ^:private commands
   (sorted-map
+    :run  {:usage   "updog run [<options>]"
+           :options [["-h" "--help" "Display help for run command and exit."]]}
     :list {:usage   "updog list [<options>]\n\nList keys in app db."
            :options [["-h" "--help" "Display help for list command and exit."]]}
     :get  {:usage   (str "updog get [<options>] [<app-key> [<app-key>...]]\n\n"
                          "Output details of all/specified apps.")
            :options [["-h" "--help" "Display help for get command and exit."]]}
-    :run  {:usage   "updog run [<options>]"
-           :options [["-h" "--help" "Display help for run command and exit."]]}
     :add  {:usage   (str/join \newline
                               ["updog add [<options>] <app-key>"
                                ""
@@ -168,7 +168,7 @@
   [cmd]
   (if cmd
     (get-in commands [cmd :usage])
-    "updog <options> [<command> [<command-options...>]]"))
+    "updog <options> [<command> [<command-options>]]"))
 
 (defn- usage
   ([] (usage nil))
