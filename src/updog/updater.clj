@@ -110,5 +110,5 @@
 (defmethod ig/init-key ::single-run-updater
   [_ {:keys [db sources], :as config}]
   (let [source-types (mapv u/->str sources)]
-    (log/infof "Single run updater: db=<%s> sources=%s" (u/->str db) (pr-str source-types)))
+    (log/debugf "Single run updater: db=<%s> sources=%s" (u/->str db) (pr-str source-types)))
   (map->SingleRunUpdater config))
