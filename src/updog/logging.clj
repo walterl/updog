@@ -4,4 +4,5 @@
 
 (defmethod ig/init-key ::timbre-logger
   [_ {:keys [log-level]}]
-  (log/set-level! log-level))
+  (when log-level
+    (log/set-level! log-level)))

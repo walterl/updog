@@ -17,4 +17,4 @@
  {}
 
  :updog.logging/timbre-logger
- {:log-level :debug}}
+ {}}
