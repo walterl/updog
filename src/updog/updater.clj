@@ -1,6 +1,5 @@
 (ns updog.updater
-  (:require [clojure.string :as str]
-            [integrant.core :as ig]
+  (:require [integrant.core :as ig]
             [me.raynes.fs :as fs]
             [taoensso.timbre :as log]
             [updog.apps-db :as apps-db]
