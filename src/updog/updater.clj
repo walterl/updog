@@ -67,6 +67,7 @@
 (defn- update-db!
   [{:keys [app-key db latest-version], app-name :name}]
   (apps-db/assoc-field! db app-key :version latest-version)
+  (apps-db/assoc-field! db app-key :last-updated-at (java.util.Date.))
   (log/infof "App %s updated to version %s" app-name latest-version))
 
 (defn- update-file
