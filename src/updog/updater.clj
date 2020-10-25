@@ -89,15 +89,18 @@
 (defprotocol Updater
   "File updater protocol."
 
-  (start-update! [_]
+  (start-update! [_ selected-apps]
     "Start a single round of updates."))
 
 (defrecord SingleRunUpdater [db sources]
   Updater
   (start-update!
-    [_]
-    (let [base-tmp-dir (u/tmp-dir)]
-      (doseq [[app-key app] (seq (apps-db/get-all-apps db))]
+    [_ selected-apps]
+    (let [selected-apps (set (map keyword selected-apps))
+          base-tmp-dir  (u/tmp-dir)]
+      (doseq [[app-key app] (seq (apps-db/get-all-apps db))
+              :when (or (empty? selected-apps)
+                        (selected-apps app-key))]
         (try
           (update-file (assoc app
                               :app-key        app-key

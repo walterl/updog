@@ -20,9 +20,9 @@
   (sorted-map
    :update {:usage   (str/join
                       \newline
-                      ["updog update [<options>] [app [app ...]]"
+                      ["updog update [<options>] [app-key [app-key ...]]"
                        ""
-                       "Update the specified apps, or all apps in the database."])
+                       "Update all/specified apps."])
             :options [["-h" "--help" "Display help for run command and exit."]]}
    :list   {:usage   "updog list [<options>]\n\nList keys in app db."
             :options [["-h" "--help" "Display help for list command and exit."]]}
@@ -129,9 +129,9 @@
             [:apps app-key])))
 
 (defmethod command! :update
-  [sys cmd options]
-  (error-on-unexpected-args! {:system sys, :cmd cmd, :options options})
-  (updater/start-update! (::updater/single-run-updater sys)))
+  [sys _ {:keys [arguments]}]
+  (updater/start-update! (::updater/single-run-updater sys)
+                         arguments))
 
 (defmethod command! :add
   [sys _ {:keys [arguments], {:keys [input]} :options}]
