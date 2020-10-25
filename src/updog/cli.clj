@@ -91,8 +91,8 @@
                                      :options options})))
 
 (defmethod command! :list
-  [sys _ options]
-  (error-on-unexpected-args! {:system sys, :cmd :list, :options options})
+  [sys cmd options]
+  (error-on-unexpected-args! {:system sys, :cmd cmd, :options options})
   (let [{:keys [db]} (::updater/single-run-updater sys)]
     (log/debug ::list-all-apps (keys (apps-db/get-all-apps db)))
     (str/join \newline (for [app-key (keys (apps-db/get-all-apps db))]
@@ -105,12 +105,12 @@
       (seq arguments) (select-keys (map keyword arguments)))))
 
 (defmethod command! :set
-  [sys _ {:keys [arguments], :as options}]
+  [sys cmd {:keys [arguments], :as options}]
   (let [{:keys [db]}     (::updater/single-run-updater sys)
         app-key          (args->app-key arguments)
         [field & values] (rest arguments)
         field            (keyword field)
-        err-data         {:system sys, :cmd :rm, :options options}
+        err-data         {:system sys, :cmd cmd, :options options}
         value            (cond-> (str/join " " values)
                            (get-in options [:options :edn]) edn/read-string)]
     (error-on-invalid-app-key! err-data)
@@ -124,8 +124,8 @@
             [:apps app-key])))
 
 (defmethod command! :run
-  [sys _ options]
-  (error-on-unexpected-args! {:system sys, :cmd :run, :options options})
+  [sys cmd options]
+  (error-on-unexpected-args! {:system sys, :cmd cmd, :options options})
   (updater/start-update! (::updater/single-run-updater sys)))
 
 (defmethod command! :add
@@ -136,10 +136,10 @@
             [:apps app-key])))
 
 (defmethod command! :rm
-  [sys _ {:keys [arguments], :as options}]
+  [sys cmd {:keys [arguments], :as options}]
   (let [app-key      (args->app-key arguments)
         {:keys [db]} (::updater/single-run-updater sys)
-        err-data     {:system sys, :cmd :rm, :options options}]
+        err-data     {:system sys, :cmd cmd, :options options}]
     (error-on-required-arg! err-data "app key")
     (error-on-invalid-app-key! err-data)
     (get-in (apps-db/dissoc-app! db app-key)
