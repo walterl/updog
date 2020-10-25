@@ -18,39 +18,44 @@
 
 (def ^:private commands
   (sorted-map
-    :run  {:usage   "updog run [<options>]"
-           :options [["-h" "--help" "Display help for run command and exit."]]}
-    :list {:usage   "updog list [<options>]\n\nList keys in app db."
-           :options [["-h" "--help" "Display help for list command and exit."]]}
-    :get  {:usage   (str "updog get [<options>] [<app-key> [<app-key>...]]\n\n"
-                         "Output details of all/specified apps.")
-           :options [["-h" "--help" "Display help for get command and exit."]]}
-    :set  {:usage   (str "updog set <app-key> <field> <value>\n\n"
-                         "Update app's field value.")
-           :options [["-e" "--edn" "Parse value as EDN."]
-                     ["-h" "--help" "Display help for set command and exit."]]}
-    :add  {:usage   (str/join \newline
-                              ["updog add [<options>] <app-key>"
-                               ""
-                               (str "Add app with key to app db. "
-                                    "App details are read from stdin.")
-                               ""
-                               "Example:"
-                               "$ updog add clj-kondo"
-                               "{:name         \"clj-kondo linter\""
-                               " :source-type  :github-release"
-                               " :github-repo  \"borkdude/clj-kondo\""
-                               " :dest-path    \"$HOME/.local/bin/clj-kondo\""
-                               " :unpack       [:unzip]"
-                               " :post-install [:chmod+x]}"])
-           :options [["-i" "--input FILENAME" "Read app EDN from FILENAME."
-                      :default      *in*
-                      :default-desc "STDIN"
-                      :parse-fn     #(edn/read-string (slurp %))]
-                     ["-h" "--help" "Display help for add command and exit."]]}
-    :rm   {:usage   (str "updog rm <app-key>\n\n"
-                         "Delete app with specified key from app db.")
-           :options [["-h" "--help" "Display help for rm command and exit."]]}))
+   :update {:usage   (str/join
+                      \newline
+                      ["updog update [<options>] [app [app ...]]"
+                       ""
+                       "Update the specified apps, or all apps in the database."])
+            :options [["-h" "--help" "Display help for run command and exit."]]}
+   :list   {:usage   "updog list [<options>]\n\nList keys in app db."
+            :options [["-h" "--help" "Display help for list command and exit."]]}
+   :get    {:usage   (str "updog get [<options>] [<app-key> [<app-key>...]]\n\n"
+                          "Output details of all/specified apps.")
+            :options [["-h" "--help" "Display help for get command and exit."]]}
+   :set    {:usage   (str "updog set <app-key> <field> <value>\n\n"
+                          "Update app's field value.")
+            :options [["-e" "--edn" "Parse value as EDN."]
+                      ["-h" "--help" "Display help for set command and exit."]]}
+   :add    {:usage   (str/join
+                      \newline
+                      ["updog add [<options>] <app-key>"
+                       ""
+                       (str "Add app with key to app db. "
+                            "App details are read from stdin.")
+                       ""
+                       "Example:"
+                       "$ updog add clj-kondo"
+                       "{:name         \"clj-kondo linter\""
+                       " :source-type  :github-release"
+                       " :github-repo  \"borkdude/clj-kondo\""
+                       " :dest-path    \"$HOME/.local/bin/clj-kondo\""
+                       " :unpack       [:unzip]"
+                       " :post-install [:chmod+x]}"])
+            :options [["-i" "--input FILENAME" "Read app EDN from FILENAME."
+                       :default      *in*
+                       :default-desc "STDIN"
+                       :parse-fn     #(edn/read-string (slurp %))]
+                      ["-h" "--help" "Display help for add command and exit."]]}
+   :rm     {:usage   (str "updog rm <app-key>\n\n"
+                          "Delete app with specified key from app db.")
+            :options [["-h" "--help" "Display help for rm command and exit."]]}))
 
 (defn- args->app-key
   [args]
@@ -123,7 +128,7 @@
     (get-in (apps-db/assoc-field! db app-key field value)
             [:apps app-key])))
 
-(defmethod command! :run
+(defmethod command! :update
   [sys cmd options]
   (error-on-unexpected-args! {:system sys, :cmd cmd, :options options})
   (updater/start-update! (::updater/single-run-updater sys)))
