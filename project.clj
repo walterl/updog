@@ -1,4 +1,4 @@
-(defproject updog "0.2.0"
+(defproject updog "0.2.1-SNAPSHOT"
   :description "Your watchdog for updates of software without updates."
   :url "https://github.com/walterl/updog"
   :license {:name "GPLv3"
