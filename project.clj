@@ -8,7 +8,7 @@
                  [cheshire "5.10.0"]
                  [clj-commons/fs "1.5.2"]
                  [clj-http "3.10.1"]
-                 [com.taoensso/timbre "4.10.0"]
+                 [com.taoensso/timbre "5.1.0"]
                  [integrant "0.8.0"]
                  [integrant/repl "0.3.1"]
                  [medley "1.3.0"]]

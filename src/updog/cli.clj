@@ -219,11 +219,11 @@
         (ex-message ex))))
 
 (defn- run-command!
-  [db-file cmd opts]
-  (log/debug ::command! cmd opts)
+  [system-opts cmd opts]
   (let [system (atom nil)]
     (try
-      (reset! system (sys/init db-file))
+      (reset! system (sys/init system-opts))
+      (log/debug ::command! cmd opts)
       (let [cmd-output (command! @system cmd opts)]
         {:output (or cmd-output "Done.")})
       (catch ExceptionInfo ex
@@ -244,8 +244,6 @@
         (parse-args args)
 
         errors (into errors (:errors cmd-opts))]
-    (log/set-level! (if (:verbose options) :debug :info))
-    (log/debug ::cli-main args options cmd cmd-opts errors)
     (cond
       (not-empty errors)
       (format-errors errors)
@@ -258,4 +256,6 @@
       {:output (usage cmd)}
 
       :else
-      (run-command! (:db options) cmd cmd-opts))))
+      (run-command! {:db-file   (:db options)
+                     :log-level (if (:verbose options) :debug :info)}
+                    cmd cmd-opts))))
