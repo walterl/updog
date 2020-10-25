@@ -214,13 +214,24 @@
       (finally
         (sys/halt! @system)))))
 
+(defn- format-errors
+  [errors]
+  {:error {:type ::options-errors
+           :msg  (str/join \newline errors)}})
+
 (defn main
   "Entrypoint for CLI. Call with command-line args."
   [args]
-  (let [[{:keys [options]} cmd cmd-opts] (parse-args args)]
+  (let [[{:keys [options]} cmd cmd-opts] (parse-args args)
+        errors                           (-> []
+                                             (into (:errors options))
+                                             (into (:errors cmd-opts)))]
     (log/set-level! (if (:verbose options) :debug :info))
-    (log/debug ::cli-main)
+    (log/debug ::cli-main args options cmd cmd-opts)
     (cond
+      (not-empty errors)
+      (format-errors errors)
+
       (or (:help options)
           (not cmd))
       {:output (usage)}

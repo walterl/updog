@@ -4,11 +4,14 @@
   (:gen-class))
 
 (defn- print-result
-  [{:keys [output], :as m}]
+  [{:keys [error output], :as m}]
   (cond
     (string? output) (println output)
     (some? output)   (pprint output)
-    :else            (pprint m)))
+    :else            (pprint m))
+  (when-let [error-msg (:msg error)]
+    (println "Error:" error-msg)
+    (System/exit 1)))
 
 (defn -main
   [& args]
