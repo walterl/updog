@@ -76,7 +76,7 @@
   (when-not (seq (:arguments options))
     (throw (ex-info (str "Missing request argument " arg-name)
                     (assoc err-data
-                           :type     ::missing-app-key
+                           :type     ::missing-arg
                            :arg-name arg-name)))))
 
 (defn- error-on-invalid-app-key!
@@ -138,9 +138,15 @@
                          arguments))
 
 (defmethod command! :add
-  [sys _ {:keys [arguments], {:keys [input]} :options}]
+  [sys cmd {:keys [arguments], {:keys [input]} :options, :as options}]
   (let [app-key      (args->app-key arguments)
         {:keys [db]} (::updater/single-run-updater sys)]
+    (when-not app-key
+      (throw (ex-info "No app key specified"
+                      {:type    ::missing-app-key
+                       :system  sys
+                       :cmd     cmd
+                       :options options})))
     (get-in (apps-db/assoc-app! db app-key (read-edn input))
             [:apps app-key])))
 
