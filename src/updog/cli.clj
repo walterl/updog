@@ -16,6 +16,10 @@
    ["-v" "--verbose" "Enable verbose output (set log level to debug)."]
    ["-h" "--help" "Display help text and exit."]] )
 
+(defn- read-edn
+  [stream-or-filename]
+  (edn/read-string (slurp stream-or-filename)))
+
 (def ^:private commands
   (sorted-map
    :update {:usage   (str/join
@@ -51,7 +55,7 @@
             :options [["-i" "--input FILENAME" "Read app EDN from FILENAME."
                        :default      *in*
                        :default-desc "STDIN"
-                       :parse-fn     #(edn/read-string (slurp %))]
+                       :validate     [fs/exists? "File not found"]]
                       ["-h" "--help" "Display help for add command and exit."]]}
    :rm     {:usage   (str "updog rm <app-key>\n\n"
                           "Delete app with specified key from app db.")
@@ -137,7 +141,7 @@
   [sys _ {:keys [arguments], {:keys [input]} :options}]
   (let [app-key      (args->app-key arguments)
         {:keys [db]} (::updater/single-run-updater sys)]
-    (get-in (apps-db/assoc-app! db app-key input)
+    (get-in (apps-db/assoc-app! db app-key (read-edn input))
             [:apps app-key])))
 
 (defmethod command! :rm
