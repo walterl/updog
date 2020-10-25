@@ -1,11 +1,13 @@
 (ns updog.system
-  (:require [integrant.core :as ig]))
+  (:require [clojure.java.io :as io]
+            [integrant.core :as ig]))
 
 (defn init
-  "Initialize the duct system for the application, from `config-file`."
-  [config-file]
-  (let [config (-> (slurp config-file)
-                   ig/read-string)]
+  "Initialize the application integrant system, using app `db-file`."
+  [db-file]
+  (let [config (-> (slurp (io/resource "system_config.edn"))
+                   ig/read-string
+                   (assoc-in [:updog.apps-db.edn-db/apps-db :filename] db-file))]
     (ig/load-namespaces config)
     (-> config
         ig/prep

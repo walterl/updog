@@ -10,9 +10,9 @@
   (:import clojure.lang.ExceptionInfo))
 
 (def ^:private cli-options
-  [["-c" "--config" "EDN configuration file to use."
-    :default  "dev/resources/config.edn"
-    :validate [fs/exists?]]
+  [["-d" "--db APPSDB" "EDN apps database to use."
+    :default  "appsdb.edn"
+    :validate [fs/exists? "Apps database file not found."]]
    ["-v" "--verbose" "Enable verbose output (set log level to debug)."]
    ["-h" "--help" "Display help text and exit."]] )
 
@@ -204,11 +204,11 @@
         (ex-message ex))))
 
 (defn- run-command!
-  [config-file cmd opts]
+  [db-file cmd opts]
   (log/debug ::command! cmd opts)
   (let [system (atom nil)]
     (try
-      (reset! system (sys/init config-file))
+      (reset! system (sys/init db-file))
       (let [cmd-output (command! @system cmd opts)]
         (log/debug ::command-output cmd-output)
         {:output cmd-output})
@@ -244,4 +244,4 @@
       {:output (usage cmd)}
 
       :else
-      (run-command! (:config options) cmd cmd-opts))))
+      (run-command! (:db options) cmd cmd-opts))))
