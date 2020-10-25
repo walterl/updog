@@ -210,8 +210,7 @@
     (try
       (reset! system (sys/init db-file))
       (let [cmd-output (command! @system cmd opts)]
-        (log/debug ::command-output cmd-output)
-        {:output cmd-output})
+        {:output (or cmd-output "Done.")})
       (catch ExceptionInfo ex
         {:error {:type (error-type ex)
                  :msg  (error-message ex)}})
