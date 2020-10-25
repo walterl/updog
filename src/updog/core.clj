@@ -15,4 +15,5 @@
 
 (defn -main
   [& args]
-  (print-result (cli/main args)))
+  (print-result (cli/main args))
+  (shutdown-agents))
