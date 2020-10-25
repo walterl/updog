@@ -226,12 +226,12 @@
 (defn main
   "Entrypoint for CLI. Call with command-line args."
   [args]
-  (let [[{:keys [options]} cmd cmd-opts] (parse-args args)
-        errors                           (-> []
-                                             (into (:errors options))
-                                             (into (:errors cmd-opts)))]
+  (let [[{:keys [errors options]} cmd cmd-opts]
+        (parse-args args)
+
+        errors (into errors (:errors cmd-opts))]
     (log/set-level! (if (:verbose options) :debug :info))
-    (log/debug ::cli-main args options cmd cmd-opts)
+    (log/debug ::cli-main args options cmd cmd-opts errors)
     (cond
       (not-empty errors)
       (format-errors errors)
