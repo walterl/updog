@@ -6,8 +6,11 @@
             [updog.app-source :refer [AppSource source-type]]
             [updog.util :as u]))
 
+(def ^:private github-releases-url
+  "https://api.github.com/repos/%s/releases")
+
 (def ^:private github-latest-release-url
-  "https://api.github.com/repos/%s/releases/latest")
+  (str github-releases-url "/latest"))
 
 (defn- asset-matcher
   [selector asset]
@@ -22,6 +25,19 @@
       (last (re-matches regex version-tag)))
     version-tag))
 
+(defn- fetch-latest-version
+  [repo]
+  (try
+   (-> (format github-latest-release-url repo)
+       slurp
+       (json/parse-string true))
+   (catch java.io.FileNotFoundException _
+     ;; If there is no latest release, let's use the first release, which is probably a pre-release
+     (-> (format github-releases-url repo)
+         slurp
+         (json/parse-string true)
+         first))))
+
 (defrecord GithubReleaseSource []
   AppSource
   (source-type [_] :github-release)
@@ -30,8 +46,7 @@
     [_ {:keys [asset-selector github-repo version-regex] :as app}]
     (log/debug ::fetch-latest-version-data-data!
                (select-keys app [:github-repo :name]))
-    (let [url            (format github-latest-release-url github-repo)
-          latest-version (-> (slurp url) (json/parse-string true))
+    (let [latest-version (fetch-latest-version github-repo)
           asset          (some (partial asset-matcher asset-selector)
                                (:assets latest-version))]
       {:version  (tag->version version-regex (:tag_name latest-version))
