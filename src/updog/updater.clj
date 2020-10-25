@@ -71,8 +71,9 @@
 
 (defn- update-file
   [{:keys [source], app-name :name, {last-version :version} :version, :as app}]
-  (let [latest-version (app-source/fetch-latest-version-data! source app)
-        app            (init-update (assoc app :latest-version latest-version))]
+  (let [app (-> app
+                (assoc :latest-version (app-source/fetch-latest-version-data! source app))
+                init-update)]
     (when-not (has-latest-version? app)
       (throw (ex-info (format "Unable to find latest version for %s" app-name)
                       {:type ::no-latest-version
