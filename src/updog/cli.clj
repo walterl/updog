@@ -5,8 +5,8 @@
             [me.raynes.fs :as fs]
             [taoensso.timbre :as log]
             [updog.apps-db :as apps-db]
-            [updog.updater :as updater]
-            [updog.system :as sys])
+            [updog.system :as sys]
+            [updog.updater :as updater])
   (:import clojure.lang.ExceptionInfo))
 
 (def ^:private cli-options
@@ -129,8 +129,8 @@
     (when-not (not-empty value)
       (throw (ex-info "No value specified"
                       (assoc err-data :type ::missing-value))))
-    (get-in (apps-db/assoc-field! db app-key field value)
-            [:apps app-key])))
+    (get (apps-db/assoc-field! db app-key field value)
+         app-key)))
 
 (defmethod command! :update
   [sys _ {:keys [arguments]}]
@@ -147,8 +147,8 @@
                        :system  sys
                        :cmd     cmd
                        :options options})))
-    (get-in (apps-db/assoc-app! db app-key (read-edn input))
-            [:apps app-key])))
+    (get (apps-db/assoc-app! db app-key (read-edn input))
+         app-key)))
 
 (defmethod command! :rm
   [sys cmd {:keys [arguments], :as options}]
@@ -157,8 +157,8 @@
         err-data     {:system sys, :cmd cmd, :options options}]
     (error-on-required-arg! err-data "app key")
     (error-on-invalid-app-key! err-data)
-    (get-in (apps-db/dissoc-app! db app-key)
-            [:apps app-key])))
+    (get (apps-db/dissoc-app! db app-key)
+         app-key)))
 
 (defn- cmd-options
   [cmd]
