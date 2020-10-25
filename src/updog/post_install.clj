@@ -18,12 +18,15 @@
   installed)
 
 (defmethod post-install-action :shell-script
-  [{:keys [app-key shell-script] :as app} _]
-  (let [args (select-keys app [:downloaded :install-file :installed])]
-    (log/debug ::shell-script {:app-key      app-key
-                               :shell-script shell-script
-                               :args         args})
-    (u/shell-script shell-script args)))
+  [{:keys [app-key installed shell-script] :as app} _]
+  (when shell-script
+    (let [script-args (select-keys app [:downloaded :install-file :installed])]
+      (doseq [script (if (sequential? shell-script) shell-script [shell-script])]
+        (log/debug ::shell-script {:app-key      app-key
+                                   :shell-script script
+                                   :args         script-args})
+        (u/shell-script script script-args))))
+  installed)
 
 (defn post-install-app!
   "Applies all `:post-install` actions to `app` and returns a vector of
