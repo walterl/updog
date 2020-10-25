@@ -1,6 +1,6 @@
 # Updog
 
-!["What's updog?"](https://pics.me.me/the-officeisms-com-hey-dwight-is-it-me-or-does-this-19982273.png)
+!["What's updog?"](./updog.jpg)
 
 Your watchdog for updates of software without updates.
 
