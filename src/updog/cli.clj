@@ -153,11 +153,11 @@
 
 (defn- parse-args
   [args]
-  (let [parsed         (cli/parse-opts args cli-options :in-order true)
-        [cmd & args]   (:arguments parsed)
-        [cmd cmd-opts] (cmd-options cmd)]
+  (let [parsed           (cli/parse-opts args cli-options :in-order true)
+        [cmd & cmd-args] (:arguments parsed)
+        [cmd cmd-opts]   (cmd-options cmd)]
     (cond-> [parsed]
-      cmd (into [cmd (cli/parse-opts args cmd-opts)]))))
+      cmd (into [cmd (cli/parse-opts cmd-args cmd-opts)]))))
 
 (defn- appended-commands
   [summary]
