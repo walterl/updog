@@ -5,7 +5,8 @@
             [integrant.core :as ig]
             [medley.core :as m]
             [taoensso.timbre :as log]
-            [updog.apps-db :refer [AppsDB]]))
+            [updog.apps-db :refer [AppsDB initialize!]]
+            [updog.util :as u]))
 
 (defn- load-edn-file
   [filename]
@@ -36,35 +37,41 @@
   (initialize!
     [_]
     ;; Create empty versions DB if it doesn't exist
+    (log/debug "Initializing apps DB at" filename)
     (when-not (.exists (io/file filename))
-      (log/debugf "Initializing apps DB" filename)
-      (spit-edn! filename {:apps {}})))
+      (spit-edn! filename {})))
 
   (assoc-app!
-    [_ app-key app-data]
+    [_ app-key app]
     (with-updating-edn-file filename [edn]
-      (assoc-in edn [:apps app-key] app-data)))
+      (assoc edn app-key app)))
 
   (assoc-field!
     [_ app-key field value]
     (with-updating-edn-file filename [edn]
-      (assoc-in edn [:apps app-key field] value)))
+      (assoc-in edn [app-key field] value)))
 
   (dissoc-app!
     [_ app-key]
     (with-updating-edn-file filename [edn]
-      (m/dissoc-in edn [:apps app-key])))
+      (m/dissoc-in edn [app-key])))
 
   (get-app
     [_ app-key]
     (with-edn-file filename [edn]
-      (get-in edn [:apps app-key])))
+      (get-in edn [app-key])))
 
   (get-all-apps
     [_]
     (with-edn-file filename [edn]
-      (:apps edn))))
+      edn)))
 
-(defmethod ig/init-key ::app-db
+(defmethod u/->str EDNAppsDB
+  [{:keys [filename]}]
+  (format "EDN:%s" filename))
+
+(defmethod ig/init-key ::apps-db
   [_ config]
-  (map->EDNAppsDB config))
+  (let [db (map->EDNAppsDB config)]
+    (initialize! db)
+    db))

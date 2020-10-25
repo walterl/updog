@@ -1,89 +1,118 @@
 (ns updog.updater
-  (:require [clj-http.client :as http]
-            [clojure.java.io :as io]
-            [clojure.java.shell :refer [sh]]
-            [clojure.string :as str]
-            [integrant.core :as ig]
+  (:require [integrant.core :as ig]
             [me.raynes.fs :as fs]
-            [me.raynes.fs.compression :as fs.comp]
             [taoensso.timbre :as log]
             [updog.apps-db :as apps-db]
-            [updog.app-source :as app-source]))
-
-(defn- download-file!
-  [url dest]
-  (with-open [out (io/output-stream dest)]
-    (io/copy (:body (http/get url {:as :stream}))
-             out)))
-
-(defn- exec!
-  [filename dir command]
-  ;; TODO Test this
-  (sh (-> command
-             (str/replace #"APPFILE" filename)
-             (str/split #"\s+"))
-      :dir dir))
+            [updog.app-source :as app-source]
+            [updog.post-install :as post-install]
+            [updog.unpack :as unpack]
+            [updog.util :as u]))
 
 (defn- newer-version?
-  "Is version `a` newer than `b`?"
+  "Is version `a` newer than `b`? Always returns `true` if `b` is nil."
   [a b]
-  (pos? (compare a b)))
+  (or (nil? b)
+      (pos? (compare a b))))
 
-(defn- post-process
-  [app-data]
-  ;; TODO Test this
-  (let [{:keys [local-path post-proc]} app-data
-        parent-dir                     (fs/parent local-path)]
-    (cond
-      (= :unzip post-proc) (fs.comp/unzip local-path parent-dir)
-      (string? post-proc)  (exec! local-path parent-dir post-proc))))
+(defn- has-latest-version?
+  [{:keys [latest-version]}]
+  (and latest-version (:version latest-version)))
 
 (defn- source-of-type
   [sources source-type]
-  (some #(when (= source-type (app-source/source-type %))
-           %)
-        sources))
+  (or (first (filter #(= source-type (app-source/source-type %))
+                     sources))
+      (throw (ex-info "Source not found!" {:source-type source-type
+                                           :sources     sources}))))
+
+(defn- should-update?
+  [{:keys [dest-path]
+    app-name                  :name
+    {last-version :version}   :version
+    {latest-version :version} :latest-version}]
+  (cond
+    (not (fs/exists? dest-path))
+    (do
+      (log/debugf "File not found: %s" dest-path)
+      true)
+
+    (newer-version? latest-version last-version)
+    (do
+      (log/debugf "App %s %s has newer version: %s"
+                  app-name last-version latest-version)
+      true)
+
+    :else
+    false))
+
+(defn- init-update
+  [{:keys [app-key latest-version tmp-dir], app-name :name, :as app}]
+  (log/infof "Updating app %s to version %s..." app-name (:version latest-version))
+  (let [app-tmp-dir (str tmp-dir "/" (name app-key))]
+    (fs/mkdirs app-tmp-dir)
+    (assoc app
+           :base-tmp-dir tmp-dir
+           :tmp-dir      app-tmp-dir)))
+
+(defn- source-dispatch
+  [{:keys [source] :as app} method]
+  (method source app))
+
+(defn- install!
+  [{:keys [dest-path install-file]}]
+  (u/copy! install-file dest-path)
+  dest-path)
+
+(defn- update-db!
+  [{:keys [app-key db latest-version], app-name :name}]
+  (apps-db/assoc-field! db app-key :version latest-version)
+  (apps-db/assoc-field! db app-key :last-updated-at (java.util.Date.))
+  (log/infof "App %s updated to version %s" app-name latest-version))
 
 (defn- update-file
-  [db
-   {current-version :version
-    app-key         :app-key
-    app-name        :name
-    local-path      :local-path
-    :as app-data}
-   {latest-version :version
-    :keys [download-url]}]
-  (if (newer-version? latest-version current-version)
-    (do
-      (log/infof "App %s/%s (%s) has newer version: %s"
-                 app-name
-                 app-key
-                 current-version
-                 latest-version)
-      (download-file! download-url local-path)
-      (apps-db/assoc-field! db app-key :version latest-version)
-      (post-process app-data))
-    (log/infof "App %s is at the latest version: %s"
-               app-name
-               current-version)))
+  [{:keys [source], app-name :name, {last-version :version} :version, :as app}]
+  (let [app (-> app
+                (assoc :latest-version (app-source/fetch-latest-version-data! source app))
+                init-update)]
+    (when-not (has-latest-version? app)
+      (throw (ex-info (format "Unable to find latest version for %s" app-name)
+                      {:type ::no-latest-version
+                       :app  app})))
+    (if (should-update? app)
+      (u/assoc-f app
+                 :downloaded   #(source-dispatch % app-source/download!)
+                 :install-file unpack/unpack-app!
+                 :installed    install!
+                 :post-install post-install/post-install-app!
+                 :db-updated   update-db!)
+      (log/infof "App %s is at the latest version: %s" app-name last-version))))
 
 (defprotocol Updater
   "File updater protocol."
 
-  (start-update! [_]
+  (start-update! [_ selected-apps]
     "Start a single round of updates."))
 
 (defrecord SingleRunUpdater [db sources]
   Updater
   (start-update!
-    [_]
-    (apps-db/initialize! db)
-    (doseq [[app-key app-data] (seq (apps-db/get-all-apps db))
-            :let [source         (source-of-type sources (:source app-data))
-                  latest-version (app-source/fetch-latest-version! source app-data)]]
-      (update-file db (assoc app-data :app-key app-key) latest-version))))
+    [_ selected-apps]
+    (let [selected-apps (set (map keyword selected-apps))
+          base-tmp-dir  (u/tmp-dir)]
+      (doseq [[app-key app] (seq (apps-db/get-all-apps db))
+              :when (or (empty? selected-apps)
+                        (selected-apps app-key))]
+        (try
+          (update-file (assoc app
+                              :app-key        app-key
+                              :tmp-dir        base-tmp-dir
+                              :db             db
+                              :source         (source-of-type sources (:source-type app))))
+          (catch Throwable ex
+            (log/errorf ex "Failed to update app %s" app-key)))))))
 
 (defmethod ig/init-key ::single-run-updater
-  [_ config]
-  (log/info "Single run updater:" config)
+  [_ {:keys [db sources], :as config}]
+  (let [source-types (mapv u/->str sources)]
+    (log/debugf "Single run updater: db=<%s> sources=%s" (u/->str db) (pr-str source-types)))
   (map->SingleRunUpdater config))

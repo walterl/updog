@@ -1,10 +1,19 @@
 (ns updog.core
-  (:require [integrant.core :as ig])
+  (:require [clojure.pprint :refer [pprint]]
+            [updog.cli :as cli])
   (:gen-class))
+
+(defn- print-result
+  [{:keys [error output], :as m}]
+  (cond
+    (string? output) (println output)
+    (some? output)   (pprint output)
+    :else            (pprint m))
+  (when-let [error-msg (:msg error)]
+    (println "Error:" error-msg)
+    (System/exit 1)))
 
 (defn -main
   [& args]
-  (-> (slurp (or (first args) "config.edn"))
-      ig/read-string
-      ig/prep
-      ig/init))
+  (print-result (cli/main args))
+  (shutdown-agents))
