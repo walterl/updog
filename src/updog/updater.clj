@@ -8,12 +8,6 @@
             [updog.unpack :as unpack]
             [updog.util :as u]))
 
-(defn- newer-version?
-  "Is version `a` newer than `b`? Always returns `true` if `b` is nil."
-  [a b]
-  (or (nil? b)
-      (pos? (compare a b))))
-
 (defn- has-latest-version?
   [{:keys [latest-version]}]
   (and latest-version (:version latest-version)))
@@ -33,12 +27,22 @@
   (cond
     (not (fs/exists? dest-path))
     (do
-      (log/debugf "File not found: %s" dest-path)
+      (log/debugf "App %s file not found: %s" app-name dest-path)
       true)
 
-    (newer-version? latest-version last-version)
+    ;; Don't know what version we have; download the latest to be safe
+    (not last-version)
     (do
-      (log/debugf "App %s %s has newer version: %s"
+      (log/debugf "No last version for app %s. Updating to %s" app-name latest-version)
+      true)
+
+    ;; If the latest published version is different than the one we have, we
+    ;; should probably change to it, regardless of whether it's semantically
+    ;; newer or not. This is to account for accidental or retracted releases.
+    ;; I.e. trust what upstream says is the latest, and use that.
+    (not= last-version latest-version)
+    (do
+      (log/debugf "App %s %s will be updated to version: %s"
                   app-name last-version latest-version)
       true)
 
@@ -104,10 +108,10 @@
                         (selected-apps app-key))]
         (try
           (update-file (assoc app
-                              :app-key        app-key
-                              :tmp-dir        base-tmp-dir
-                              :db             db
-                              :source         (source-of-type sources (:source-type app))))
+                              :app-key app-key
+                              :tmp-dir base-tmp-dir
+                              :db      db
+                              :source  (source-of-type sources (:source-type app))))
           (catch Throwable ex
             (log/errorf ex "Failed to update app %s" app-key)))))))
 
