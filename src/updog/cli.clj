@@ -13,6 +13,7 @@
   [["-d" "--db APPSDB" "EDN apps database to use."
     :default  "appsdb.edn"
     :validate [fs/exists? "Apps database file not found."]]
+   ["-L" "--long-log" "Use longer log output format."]
    ["-v" "--verbose" "Enable verbose output (set log level to debug)."]
    ["-h" "--help" "Display help text and exit."]] )
 
@@ -256,6 +257,7 @@
       {:output (usage cmd)}
 
       :else
-      (run-command! {:db-file   (:db options)
-                     :log-level (if (:verbose options) :debug :info)}
+      (run-command! {:db-file    (:db options)
+                     :log-level  (if (:verbose options) :debug :info)
+                     :log-format (when (:long-log options) :long)}
                     cmd cmd-opts))))
