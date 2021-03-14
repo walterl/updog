@@ -40,7 +40,7 @@ quality.
 You can then run `java -jar updog.jar update` periodically (e.g. via cron) to
 keep `clj-kondo` up-to-date.
 
-See `java -jar updog.jar --help` for more information
+See `java -jar updog.jar --help` for more information.
 
 
 ## Installation
