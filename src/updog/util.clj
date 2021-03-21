@@ -90,13 +90,24 @@
   (log/debugf "shell: %s" (command->sh-args shell-script vars))
   (apply sh (command->sh-args shell-script vars)))
 
+(def ^:private extractors
+  {:bzip2 fs.comp/bunzip2
+   :gzip fs.comp/gunzip
+   :tar fs.comp/untar
+   :xz fs.comp/unxz
+   :zip fs.comp/unzip})
+
 (defn unzip
-  [zip-path dest-path]
+  [zip-path dest-path archive-type]
+  (when-not (get extractors archive-type)
+    (throw (ex-info (str "Unsupported archive type: " archive-type)
+                    {:type ::unsupported-archive-type
+                     :archive-type archive-type})))
   (when-not (fs/exists? dest-path)
     (log/debugf "mkdir -p %s" dest-path)
     (fs/mkdirs dest-path))
   (log/debugf "unzip %s %s" zip-path dest-path)
-  (fs.comp/unzip zip-path dest-path))
+  ((get extractors archive-type) zip-path dest-path))
 
 (defn temp-sub-dir
   [base-dir prefix]
@@ -114,8 +125,10 @@
   ([zip-path tmp-dir]
    (unzipped-files zip-path tmp-dir "unzip-"))
   ([zip-path tmp-dir tmp-prefix]
+   (unzipped-files zip-path tmp-dir tmp-prefix :zip))
+  ([zip-path tmp-dir tmp-prefix archive-type]
    (let [unzip-dir (temp-sub-dir tmp-dir tmp-prefix)]
-     (unzip zip-path unzip-dir)
+     (unzip zip-path unzip-dir archive-type)
      (dir-files unzip-dir))))
 
 (defn cmd-version
