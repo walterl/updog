@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.clojure/tools.cli "1.0.194"]
                  [cheshire "5.10.0"]
-                 [clj-commons/fs "1.5.2"]
+                 [clj-commons/fs "1.6.307"]
                  [clj-http "3.10.1"]
                  [com.taoensso/timbre "5.1.0"]
                  [integrant "0.8.0"]
