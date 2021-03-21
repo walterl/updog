@@ -109,8 +109,8 @@
          :xz "xz"
          :zip "zip"}))
 
-(defn unzip
-  [zip-path dest-path archive-type]
+(defn extract
+  [archive-path dest-path archive-type]
   (when-not (get extractors archive-type)
     (throw (ex-info (str "Unsupported archive type: " archive-type)
                     {:type ::unsupported-archive-type
@@ -118,8 +118,8 @@
   (when-not (fs/exists? dest-path)
     (log/debugf "mkdir -p %s" dest-path)
     (fs/mkdirs dest-path))
-  (log/debugf "unzip %s %s" zip-path dest-path)
-  ((get extractors archive-type) zip-path dest-path))
+  (log/debugf "extract %s %s" archive-path dest-path)
+  ((get extractors archive-type) archive-path dest-path))
 
 (defn temp-sub-dir
   [base-dir prefix]
@@ -133,15 +133,15 @@
                 path)
        (mapcat identity)))
 
-(defn unzipped-files
-  ([zip-path tmp-dir]
-   (unzipped-files zip-path tmp-dir "unzip-"))
-  ([zip-path tmp-dir tmp-prefix]
-   (unzipped-files zip-path tmp-dir tmp-prefix :zip))
-  ([zip-path tmp-dir tmp-prefix archive-type]
-   (let [unzip-dir (temp-sub-dir tmp-dir tmp-prefix)]
-     (unzip zip-path unzip-dir archive-type)
-     (dir-files unzip-dir))))
+(defn extracted-files
+  ([archive-path tmp-dir]
+   (extracted-files archive-path tmp-dir "updog_extract-"))
+  ([archive-path tmp-dir tmp-prefix]
+   (extracted-files archive-path tmp-dir tmp-prefix :zip))
+  ([archive-path tmp-dir tmp-prefix archive-type]
+   (let [extract-dir (temp-sub-dir tmp-dir tmp-prefix)]
+     (extract archive-path extract-dir archive-type)
+     (dir-files extract-dir))))
 
 (defn cmd-version
   "Get bin version from running `cmd --version`."

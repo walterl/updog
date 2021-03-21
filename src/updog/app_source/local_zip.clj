@@ -14,7 +14,7 @@
     (log/debug ::fetch-latest-version-data!
                (select-keys app [:local-zip :name :tmp-dir]))
     (try
-      (let [bin-path (first (u/unzipped-files local-zip tmp-dir))]
+      (let [bin-path (first (u/extracted-files local-zip tmp-dir))]
         (u/chmod+x bin-path)
         {:version  (u/cmd-version bin-path)
          :bin-path bin-path
@@ -38,7 +38,7 @@
                                 :src     location
                                 :dest    :dest
                                 :status  ::unzip})
-        (first (u/unzipped-files location tmp-dir))))))
+        (first (u/extracted-files location tmp-dir))))))
 
 (defmethod u/->str LocalZipSource
   [src]
