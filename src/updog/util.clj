@@ -97,6 +97,18 @@
    :xz fs.comp/unxz
    :zip fs.comp/unzip})
 
+(defn archive-type-by-ext
+  "Returns archive type (key of `extractors`) as indicated by `filename`'s extension."
+  [filename]
+  (some (fn [[comp-type ext]]
+          (when (re-find (re-pattern (str "\\." ext "$")) filename)
+            comp-type))
+        {:bzip2 "bz2"
+         :gzip "gz"
+         :tar "tar"
+         :xz "xz"
+         :zip "zip"}))
+
 (defn unzip
   [zip-path dest-path archive-type]
   (when-not (get extractors archive-type)

@@ -21,21 +21,10 @@
   (log/debug ::unzip {:downloaded downloaded, :tmp-dir tmp-dir})
   (first (u/unzipped-files downloaded tmp-dir "unpack-")))
 
-(defn- compression-type-by-ext
-  [filename]
-  (some (fn [[comp-type ext]]
-          (when (re-find (re-pattern (str "\\." ext "$")) filename)
-            comp-type))
-        {:bzip2 "bz2"
-         :gzip "gz"
-         :tar "tar"
-         :xz "xz"
-         :zip "zip"}))
-
 (defmethod unpack-action :extract
   [{:keys [downloaded tmp-dir]} _]
   (log/debug ::extract-compressed {:downloaded downloaded, :tmp-dir tmp-dir})
-  (when-let [compression-type (compression-type-by-ext downloaded)]
+  (when-let [archive-type (u/archive-type-by-ext downloaded)]
     (first (u/unzipped-files downloaded tmp-dir "unpack-" compression-type))))
 
 (defn unpack-app!
