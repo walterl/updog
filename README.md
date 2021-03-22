@@ -21,14 +21,14 @@ quality.
     {:name "clj-kondo",
      :source-type :github-release,
      :github-repo "borkdude/clj-kondo",
-     :unpack [:unzip],
+     :unpack [:extract],
      :post-install [:chmod+x],
      :dest-path "/usr/local/bin/clj-kondo"}
     END
     {:name "clj-kondo",
      :source-type :github-release,
      :github-repo "borkdude/clj-kondo",
-     :unpack [:unzip],
+     :unpack [:extract],
      :post-install [:chmod+x],
      :dest-path "/usr/local/bin/clj-kondo"}
 
@@ -162,8 +162,11 @@ This option is only used if `:source-type` is set to `:local-zip`.
 Here you can list supported unpacking actions to perform on the
 downloaded/copied release file.
 
-The only unpacking action currently supported is `:unzip`, which will unzip the
-downloaded file to a temporary directory.
+Currently the supported unpacking actions are:
+* `:unzip`, which will unzip the downloaded file to a temporary directory, and
+* `:extract`, which will extract any archive, based no its extension, to a temporary directory.
+
+`:extract` also supports zip files, so there's really no reason to use `:unzip`.
 
 ### `:post-install` (optional)
 A list of supported actions to perform _after_ the app binary was
