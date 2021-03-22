@@ -133,16 +133,19 @@
         archive-types))
 
 (defn extract
-  [archive-path dest-path archive-type]
-  (when-not (extractor-for-type archive-type)
-    (throw (ex-info (str "Unsupported archive type: " archive-type)
-                    {:type ::unsupported-archive-type
-                     :archive-type archive-type})))
-  (when-not (fs/exists? dest-path)
-    (log/debugf "mkdir -p %s" dest-path)
-    (fs/mkdirs dest-path))
-  (log/debugf "extract %s %s" archive-path dest-path)
-  ((extractor-for-type archive-type) archive-path dest-path))
+  ([archive-path dest-path]
+   (extract archive-path dest-path (archive-type-by-ext archive-path)))
+  ([archive-path dest-path archive-type]
+   (let [extractor (extractor-for-type archive-type)]
+     (when-not extractor
+       (throw (ex-info (str "Unsupported archive type: " archive-type)
+                       {:type ::unsupported-archive-type
+                        :archive-type archive-type})))
+     (when-not (fs/exists? dest-path)
+       (log/debugf "mkdir -p %s" dest-path)
+       (fs/mkdirs dest-path))
+     (log/debugf "extract %s %s" archive-path dest-path)
+     (extractor archive-path dest-path))))
 
 (defn temp-sub-dir
   [base-dir prefix]
