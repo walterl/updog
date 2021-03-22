@@ -5,7 +5,9 @@
             [clj-http.client :as http]
             [me.raynes.fs :as fs]
             [me.raynes.fs.compression :as fs.comp]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log])
+  (:import [org.apache.commons.compress.archivers.tar
+            TarArchiveEntry TarArchiveInputStream]))
 
 (defn- var-key->cmd-var-name
   [k]
@@ -64,8 +66,8 @@
   (str x))
 
 (defn assoc-f
-  "Performs steps on a map `m`, recording the results of each step in the map, so that the results are available to the
-  next step.
+  "Performs steps on a map `m`, recording the results of each step in the map,
+  so that the results are available to the next step.
 
   => (assoc-f {}
               :foo (constantly 1)
@@ -90,13 +92,86 @@
   (log/debugf "shell: %s" (command->sh-args shell-script vars))
   (apply sh (command->sh-args shell-script vars)))
 
-(defn unzip
-  [zip-path dest-path]
-  (when-not (fs/exists? dest-path)
-    (log/debugf "mkdir -p %s" dest-path)
-    (fs/mkdirs dest-path))
-  (log/debugf "unzip %s %s" zip-path dest-path)
-  (fs.comp/unzip zip-path dest-path))
+(defn- re-ext
+  "Builds an re-pattern for matching extension `ext` to filenames."
+  [ext]
+  (re-pattern (str "\\." ext "$")))
+
+(declare extract)
+
+(defn untar
+  "Copy of fs.comp/untar that downgrades chmod errors to warnings."
+  ([source] (untar source (name source)))
+  ([source target]
+   (with-open [tin (TarArchiveInputStream. (io/input-stream (fs/file source)))]
+     (let [target-dir-as-file (fs/file target)]
+       (doseq [^TarArchiveEntry entry (#'fs.comp/tar-entries tin)
+               :when (not (.isDirectory entry))
+               :let [output-file (fs/file target (.getName entry))]]
+         (#'fs.comp/check-final-path-inside-target-dir! output-file
+                                                        target-dir-as-file
+                                                        entry)
+         (fs/mkdirs (fs/parent output-file))
+         (io/copy tin output-file)
+         (let [mode (apply str (take-last 3 (format "%05o" (.getMode entry))))]
+           (try
+             (when (.isFile entry)
+               (fs/chmod mode (.getPath output-file)))
+             (catch IllegalArgumentException _
+               (log/warnf "failed: chmod %s %s" mode (.getPath output-file))))))))))
+
+(defn- tarball-extractor
+  "Returns a tarball extractor that will decompress `source` with `f-decomp`
+  and then call unpack the decompressed tarball to `target-dir`."
+  [f-decomp ext]
+  (fn [source target-dir]
+    (let [decompressed-path (str/replace source (re-ext ext) "")]
+      (log/debugf "decompress %s -> %s" source decompressed-path)
+      (f-decomp source decompressed-path)
+      (extract decompressed-path target-dir))))
+
+(defrecord ArchiveHandler [archive-type extension extractor])
+
+(def ^:private archive-types
+  (mapv #(apply ->ArchiveHandler %)
+        [[:tar.bz2 "tar.bz2" (tarball-extractor fs.comp/bunzip2 "bz2")]
+         [:tar.gz "tar.gz" (tarball-extractor fs.comp/gunzip "gz")]
+         [:tar.xz "tar.xz" (tarball-extractor fs.comp/unxz "xz")]
+         [:bzip2 "bz2" fs.comp/bunzip2]
+         [:gzip "gzip" fs.comp/gunzip]
+         [:tar "tar" untar]
+         [:xz "xz" fs.comp/unxz]
+         [:zip "zip" fs.comp/unzip]]))
+
+(defn archive-type-by-ext
+  "Returns archive type (key of `archive-types`) as indicated by `filename`'s extension."
+  [filename]
+  (some (fn [{:keys [archive-type extension]}]
+          (when (re-find (re-ext extension) filename)
+            archive-type))
+        archive-types))
+
+(defn- extractor-for-type
+  [target-archive-type]
+  (some (fn [{:keys [archive-type extractor]}]
+          (when (= target-archive-type archive-type)
+            extractor))
+        archive-types))
+
+(defn extract
+  ([archive-path dest-path]
+   (extract archive-path dest-path (archive-type-by-ext archive-path)))
+  ([archive-path dest-path archive-type]
+   (let [extractor (extractor-for-type archive-type)]
+     (when-not extractor
+       (throw (ex-info (str "Unsupported archive type: " archive-type)
+                       {:type ::unsupported-archive-type
+                        :archive-type archive-type})))
+     (when-not (fs/exists? dest-path)
+       (log/debugf "mkdir -p %s" dest-path)
+       (fs/mkdirs dest-path))
+     (log/debugf "extract %s %s" archive-path dest-path)
+     (extractor archive-path dest-path))))
 
 (defn temp-sub-dir
   [base-dir prefix]
@@ -110,13 +185,15 @@
                 path)
        (mapcat identity)))
 
-(defn unzipped-files
-  ([zip-path tmp-dir]
-   (unzipped-files zip-path tmp-dir "unzip-"))
-  ([zip-path tmp-dir tmp-prefix]
-   (let [unzip-dir (temp-sub-dir tmp-dir tmp-prefix)]
-     (unzip zip-path unzip-dir)
-     (dir-files unzip-dir))))
+(defn extracted-files
+  ([archive-path tmp-dir]
+   (extracted-files archive-path tmp-dir "updog_extract-"))
+  ([archive-path tmp-dir tmp-prefix]
+   (extracted-files archive-path tmp-dir tmp-prefix :zip))
+  ([archive-path tmp-dir tmp-prefix archive-type]
+   (let [extract-dir (temp-sub-dir tmp-dir tmp-prefix)]
+     (extract archive-path extract-dir archive-type)
+     (dir-files extract-dir))))
 
 (defn cmd-version
   "Get bin version from running `cmd --version`."

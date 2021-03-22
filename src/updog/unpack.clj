@@ -19,7 +19,13 @@
 (defmethod unpack-action :unzip
   [{:keys [downloaded tmp-dir]} _]
   (log/debug ::unzip {:downloaded downloaded, :tmp-dir tmp-dir})
-  (first (u/unzipped-files downloaded tmp-dir "unpack-")))
+  (first (u/extracted-files downloaded tmp-dir "unpack-" :zip)))
+
+(defmethod unpack-action :extract
+  [{:keys [downloaded tmp-dir]} _]
+  (log/debug ::extract-compressed {:downloaded downloaded, :tmp-dir tmp-dir})
+  (when-let [archive-type (u/archive-type-by-ext downloaded)]
+    (first (u/extracted-files downloaded tmp-dir "unpack-" archive-type))))
 
 (defn unpack-app!
   "Performs all `:unpack` actions on `app` and returns a vector of results."
