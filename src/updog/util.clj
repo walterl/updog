@@ -126,8 +126,11 @@
         archive-types))
 
 (defn- extractor-for-type
-  [archive-type]
-  (some #(= archive-type (:archive-type %)) archive-types))
+  [target-archive-type]
+  (some (fn [{:keys [archive-type extractor]}]
+          (when (= target-archive-type archive-type)
+            extractor))
+        archive-types))
 
 (defn extract
   [archive-path dest-path archive-type]
