@@ -5,7 +5,9 @@
             [clj-http.client :as http]
             [me.raynes.fs :as fs]
             [me.raynes.fs.compression :as fs.comp]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log])
+  (:import [org.apache.commons.compress.archivers.tar
+            TarArchiveEntry TarArchiveInputStream]))
 
 (defn- var-key->cmd-var-name
   [k]
@@ -97,6 +99,27 @@
 
 (declare extract)
 
+(defn untar
+  "Copy of fs.comp/untar that downgrades chmod errors to warnings."
+  ([source] (untar source (name source)))
+  ([source target]
+   (with-open [tin (TarArchiveInputStream. (io/input-stream (fs/file source)))]
+     (let [target-dir-as-file (fs/file target)]
+       (doseq [^TarArchiveEntry entry (#'fs.comp/tar-entries tin)
+               :when (not (.isDirectory entry))
+               :let [output-file (fs/file target (.getName entry))]]
+         (#'fs.comp/check-final-path-inside-target-dir! output-file
+                                                        target-dir-as-file
+                                                        entry)
+         (fs/mkdirs (fs/parent output-file))
+         (io/copy tin output-file)
+         (let [mode (apply str (take-last 3 (format "%05o" (.getMode entry))))]
+           (try
+             (when (.isFile entry)
+               (fs/chmod mode (.getPath output-file)))
+             (catch IllegalArgumentException _
+               (log/warnf "failed: chmod %s %s" mode (.getPath output-file))))))))))
+
 (defn- tarball-extractor
   "Returns a tarball extractor that will decompress `source` with `f-decomp`
   and then call unpack the decompressed tarball to `target-dir`."
@@ -116,7 +139,7 @@
          [:tar.xz "tar.xz" (tarball-extractor fs.comp/unxz "xz")]
          [:bzip2 "bz2" fs.comp/bunzip2]
          [:gzip "gzip" fs.comp/gunzip]
-         [:tar "tar" fs.comp/untar]
+         [:tar "tar" untar]
          [:xz "xz" fs.comp/unxz]
          [:zip "zip" fs.comp/unzip]]))
 
