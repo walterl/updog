@@ -95,14 +95,17 @@
   [ext]
   (re-pattern (str "\\." ext "$")))
 
+(declare extract)
+
 (defn- tarball-extractor
   "Returns a tarball extractor that will decompress `source` with `f-decomp`
   and then call unpack the decompressed tarball to `target-dir`."
   [f-decomp ext]
   (fn [source target-dir]
     (let [decompressed-path (str/replace source (re-ext ext) "")]
+      (log/debugf "decompress %s -> %s" source decompressed-path)
       (f-decomp source decompressed-path)
-      (fs.comp/untar decompressed-path target-dir))))
+      (extract decompressed-path target-dir))))
 
 (defrecord ArchiveHandler [archive-type extension extractor])
 
