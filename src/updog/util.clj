@@ -64,8 +64,8 @@
   (str x))
 
 (defn assoc-f
-  "Performs steps on a map `m`, recording the results of each step in the map, so that the results are available to the
-  next step.
+  "Performs steps on a map `m`, recording the results of each step in the map,
+  so that the results are available to the next step.
 
   => (assoc-f {}
               :foo (constantly 1)
@@ -90,28 +90,48 @@
   (log/debugf "shell: %s" (command->sh-args shell-script vars))
   (apply sh (command->sh-args shell-script vars)))
 
-(def ^:private extractors
-  {:bzip2 fs.comp/bunzip2
-   :gzip fs.comp/gunzip
-   :tar fs.comp/untar
-   :xz fs.comp/unxz
-   :zip fs.comp/unzip})
+(defn- re-ext
+  "Builds an re-pattern for matching extension `ext` to filenames."
+  [ext]
+  (re-pattern (str "\\." ext "$")))
+
+(defn- tarball-extractor
+  "Returns a tarball extractor that will decompress `source` with `f-decomp`
+  and then call unpack the decompressed tarball to `target-dir`."
+  [f-decomp ext]
+  (fn [source target-dir]
+    (let [decompressed-path (str/replace source (re-ext ext) "")]
+      (f-decomp source decompressed-path)
+      (fs.comp/untar decompressed-path target-dir))))
+
+(defrecord ArchiveHandler [archive-type extension extractor])
+
+(def ^:private archive-types
+  (mapv #(apply ->ArchiveHandler %)
+        [[:tar.bz2 "tar.bz2" (tarball-extractor fs.comp/bunzip2 "bz2")]
+         [:tar.gz "tar.gz" (tarball-extractor fs.comp/gunzip "gz")]
+         [:tar.xz "tar.xz" (tarball-extractor fs.comp/unxz "xz")]
+         [:bzip2 "bz2" fs.comp/bunzip2]
+         [:gzip "gzip" fs.comp/gunzip]
+         [:tar "tar" fs.comp/untar]
+         [:xz "xz" fs.comp/unxz]
+         [:zip "zip" fs.comp/unzip]]))
 
 (defn archive-type-by-ext
-  "Returns archive type (key of `extractors`) as indicated by `filename`'s extension."
+  "Returns archive type (key of `archive-types`) as indicated by `filename`'s extension."
   [filename]
-  (some (fn [[comp-type ext]]
-          (when (re-find (re-pattern (str "\\." ext "$")) filename)
-            comp-type))
-        {:bzip2 "bz2"
-         :gzip "gz"
-         :tar "tar"
-         :xz "xz"
-         :zip "zip"}))
+  (some (fn [{:keys [archive-type extension]}]
+          (when (re-find (re-ext extension) filename)
+            archive-type))
+        archive-types))
+
+(defn- extractor-for-type
+  [archive-type]
+  (some #(= archive-type (:archive-type %)) archive-types))
 
 (defn extract
   [archive-path dest-path archive-type]
-  (when-not (get extractors archive-type)
+  (when-not (extractor-for-type archive-type)
     (throw (ex-info (str "Unsupported archive type: " archive-type)
                     {:type ::unsupported-archive-type
                      :archive-type archive-type})))
@@ -119,7 +139,7 @@
     (log/debugf "mkdir -p %s" dest-path)
     (fs/mkdirs dest-path))
   (log/debugf "extract %s %s" archive-path dest-path)
-  ((get extractors archive-type) archive-path dest-path))
+  ((extractor-for-type archive-type) archive-path dest-path))
 
 (defn temp-sub-dir
   [base-dir prefix]
