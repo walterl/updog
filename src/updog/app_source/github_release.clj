@@ -47,8 +47,9 @@
     (log/debug ::fetch-latest-version-data-data!
                (select-keys app [:github-repo :name]))
     (let [latest-version (fetch-latest-version github-repo)
-          asset          (some (partial asset-matcher asset-selector)
+          asset          (some #(when (asset-matcher asset-selector %) %)
                                (:assets latest-version))]
+      (log/debug ::latest-version-asset {:asset-selector asset-selector, :asset asset})
       {:version  (tag->version version-regex (:tag_name latest-version))
        :filename (:name asset)
        :location (:browser_download_url asset)}))
