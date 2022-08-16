@@ -10,209 +10,117 @@ as GitHub releases.
 
 
 ## Project status
-
 I've only just started using this myself, so consider it alpha-verging-on-beta
 quality.
 
 
 ## Usage
 
-    $ java -jar updog.jar add clj-kondo <<END
-    {:name "clj-kondo",
-     :source-type :github-release,
-     :github-repo "borkdude/clj-kondo",
-     :unpack [:extract],
-     :post-install [:chmod+x],
-     :dest-path "/usr/local/bin/clj-kondo"}
-    END
-    {:name "clj-kondo",
-     :source-type :github-release,
-     :github-repo "borkdude/clj-kondo",
-     :unpack [:extract],
-     :post-install [:chmod+x],
-     :dest-path "/usr/local/bin/clj-kondo"}
-
-    $ java -jar updog.jar update
-    [.] Updating app clj-kondo to version v2020.10.10...
-    [.] App clj-kondo updated to version {:version "v2020.10.10", :filename "clj-kondo-2020.10.10-linux-amd64.zip", :location "https://github.com/borkdude/clj-kondo/releases/download/v2020.10.10/clj-kondo-2020.10.10-linux-amd64.zip"}
-    Done.
-
-You can then run `java -jar updog.jar update` periodically (e.g. via cron) to
-keep `clj-kondo` up-to-date.
-
-See `java -jar updog.jar --help` for more information.
+    $ cat > apps.edn <<EOF
+    {:clj-kondo/clj-kondo
+     {:asset "linux-static-amd64"}}
+    EOF
+    $ java -jar updog.jar apps.edn
+    Found existing clj-kondo version v2022.06.22 at /home/user/.local/bin/clj-kondo
+    Updating app clj-kondo to version v2022.08.03...
+    App clj-kondo updated to version v2022.08.03
 
 
 ## Installation
-
 Download from JAR from [releases](https://github.com/walterl/updog/releases/latest).
 
 
 ## Configuration
+Updog's configuration is stored in an [EDN](https://github.com/edn-format/edn)
+file and contains data about the apps to update.
 
-The Updog application database is an [EDN](https://github.com/edn-format/edn)
-file that contains data about the apps to update.
-
-Let's start with an example:
-
-```clojure
-{:clj-kondo
- {:name "clj-kondo",
-  :source-type :github-release,
-  :unpack [:unzip],
-  :post-install [:chmod+x :shell-script],
-  :github-repo "borkdude/clj-kondo",
-  :dest-path "/usr/local/bin/clj-kondo",
-  :version
-  {:version "v2020.10.10",
-   :filename "clj-kondo-2020.10.10-linux-amd64.zip",
-   :location
-   "https://github.com/borkdude/clj-kondo/releases/download/v2020.10.10/clj-kondo-2020.10.10-linux-amd64.zip"},
-  :last-updated-at #inst "2020-10-25T21:00:00.000-00:00"}}
-```
-
-The example above is an application database with one entry, for the wonderful
-[clj-kondo](https://github.com/borkdude/clj-kondo). Each app has a unique _app
-key_ -- `:clj-kondo` in this case -- mapped to a map of data about the app --
-everything in curly braces after `:clj-kondo`. The app data tells updog things like
-* where to get the app from,
-* where on your machine to install it,
-* how to unpack it,
-* what to do with it after it was installed/updated, etc.
-
-App data can contain the following keys:
-
-### `:name`
-The name of the app, as it should be printed in all output.
-
-### `:dest-path`
-The full path where the app should be installed.
-
-**Note:** The directory is *not* automatically created if it doesn't exist.
-
-In the example, clj-kondo will be installed to `/usr/local/bin/clj-kondo`.
-
-### `:source-type`
-The type of the source that the app is sourced from.
-
-In the example we will download clj-kondo releases from GitHub.
-
-Currently supported values are:
-
-#### `:github-release`
-Use this for software released as GitHub releases.
-
-_Required app keys:_
-* `:github-repo`
-
-#### `:local-bin`
-Use this if the app's binary already exists on the local system.
-
-This just copies the binary at `:local-bin` to `:dest-path`, if necessary.
-
-_Required app keys:_
-* `:local-bin`
-
-#### `:local-zip`
-Use this if the app should be installed/updated from a zip file on the local
-system.
-
-This can be useful for downloading an app zip file manually, and syncing it to
-multiple destinations.
-
-_Required app keys:_
-* `:local-zip`
-
-### `:github-repo`
-The GitHub repository, in `<user>/<repo>` format, that releases of the app is
-published to.
-
-In the example we specify clj-kondo's GitHub repository: `borkdude/clj-kondo`
-
-Updog will try to download the latest release, otherwise the first available
-one. The latter case happens when all releases are marked as pre-releases.
-
-This option is only used if `:source-type` is set to `:github-release`.
-
-### `:local-bin`
-Path on the local system where the application binary should be copied _from_.
-
-This binary will be executed with a `--version` argument to determine whether
-the version has changed.
-
-This option is only used if `:source-type` is set to `:local-bin`.
-
-### `:local-zip`
-Path on the local system to the zip file containing the app.
-
-The app will be extracted to a temporary directory, from where it will be
-executed with a `--version` argument to determine whether the version has
-changed.
-
-If an update is required, the extracted binary will be copied from the
-temporary directory.
-
-If you periodically download clj-kondo's release zip file yourself and put it,
-say, at `/home/mrmeseeks/Downloads/clj-kondo.zip`, you'll use that path as the
-value for this option.
-
-This option is only used if `:source-type` is set to `:local-zip`.
-
-### `:unpack` (optional)
-Here you can list supported unpacking actions to perform on the
-downloaded/copied release file.
-
-Currently the supported unpacking actions are:
-* `:unzip`, which will unzip the downloaded file to a temporary directory, and
-* `:extract`, which will extract any archive, based no its extension, to a temporary directory.
-
-`:extract` also supports zip files, so there's really no reason to use `:unzip`.
-
-### `:post-install` (optional)
-A list of supported actions to perform _after_ the app binary was
-installed/updated.
-
-Supported actions are:
-
-* `:chmod+x`: Makes the binary file executable by running `chmod u+x` on the installed/updated app binary.
-* `:shell-script`: One or more shell script statements to execute. See `:shell-script` below for more information.
-
-### `:shell-script` (optional)
-The shell script statement(s) to execute after the app installed/updated. It
-can be a single string or a list of strings.
-
-The following values will be substituted before the statements are executed:
-
-* `DOWNLOADED`: Path to the downloaded file.
-* `INSTALL_FILE`: Path to the unpacked app binary, _before_ it's installed to `:dest-path`.
-* `INSTALLED`: Path of the installed/updated app binary. Should be the same as `:dest-path`.
-
-In example below the _downloaded_ app file (e.g.
-`clj-kondo-2020.10.10-linux-amd64.zip`) will be copied to the `/storage/apps/`
-directory, and the _installed_ binary will be scanned for viruses.
+Let's start with a simple example:
 
 ```clojure
-{:clj-kondo
- {:name "clj-kondo"
-  ;...
-  :post-install [:shell-script]
-  :shell-script ["cp DOWNLOADED /storage/apps/"
-                 "clamscan INSTALLED"]}}
+{:clj-kondo/clj-kondo
+ {:asset "linux-static-amd64"}}
 ```
 
-This option is only used if `:shell-script` is present in the `:post-install` list.
+This configuration will fetch releases from
+<https://github.com/clj-kondo/clj-kondo> (derived from the
+`:clj-kondo/clj-kondo` key), selecting the asset `linux-static-amd64` in its
+file name.
 
-### `:version` (optional)
-This is a map of data about the last installed/updated version of the app.
+Let's expand that same example to include all the supported options:
 
-You shouldn't add or change this yourself.
+```clojure
+{:clj-kondo/clj-kondo
+ {:source        :github-release
+  :github-repo   "clj-kondo/clj-kondo"
+  :asset         "linux-static-amd64"
+  :install-dir   "~/.local/bin/"
+  :install-files ["clj-kondo"]
+  :chmod         "0750"
+  :archive-dir   "/nas/github_releases/"}}
+```
 
-### `:last-updated-at` (optional)
-The date and time of the last update run for this app.
+The `:source` key defines which source the app can be retrieved from. For now
+`:github-release` is the only supported value.
 
-This is automatically set and updated by Updog.
+`:github-repo` tells Updog which GitHub repo to use. It defaults to the app
+key, as in the simple example.
 
+The release asset that has the value of `:asset` in its filename will be
+downloaded. The value can also be a vector e.g. `["linux-static-amd64"
+"linux"]`. If not specified, the first listed asset is downloaded.
+
+`:install-dir` tells Updog where to install the app. If not specified, Updog
+will select the first writable directory in `$PATH`.
+
+`:install-files` lists the files in the release archive to install in
+`:install-dir`. If not specified, Updog tries to infer it:
+- If the release asset is a zip or tarball archive:
+  - Use the first executable file in the archive with the same name as the
+    project repo (the second `clj-kondo` in `clj-kondo/clj-kondo`).
+  - Use the first executable file in the archive with the same name as the
+    GitHub user/org (the first `clj-kondo` in `clj-kondo/clj-kondo`).
+  - Use the first executable file in the archive.
+  - Use the first file in the archive.
+- Otherwise, if the release is a binary file, assume that it's the executable
+  we're looking for.
+
+The installed app binary has its permissions set to the value of `:chmod`, if
+specified.
+
+The downloaded _asset file_ is moved to `:archive-dir`, if specified.
+
+### Default configuration values
+You can set configuration defaults under the `:updog/defaults` key.
+
+Setting defaults values for `:archive-dir`, `:chmod`, and `:install-dir`, the above
+configuration becomes this:
+
+```clojure
+{:updog/defaults
+ {:install-dir "~/.local/bin/"
+  :chmod       "0750"
+  :archive-dir "/nas/github_releases/"}
+
+ :clj-kondo/clj-kondo
+ {:source        :github-release
+  :github-repo   "clj-kondo/clj-kondo"
+  :asset         "linux-static-amd64"
+  :install-files ["clj-kondo"]}}
+```
+
+Removing inferable keys, and moving `:asset` to `:updog/defaults`, the
+configuration becomes this:
+
+```clojure
+{:updog/defaults
+ {:asset       ["linux-static-amd64" "linux-amd64-static" "linux-amd64" "linux-x64" "linux"]
+  :install-dir "~/.local/bin/"
+  :chmod       "0750"
+  :archive-dir "/nas/github_releases/"}
+
+ :clj-kondo/clj-kondo
+ {}}
+```
 
 ## License
-
 [GPLv3](./LICENSE.md)
