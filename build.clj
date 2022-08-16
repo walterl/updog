@@ -3,7 +3,7 @@
   (:require [org.corfield.build :as bb]))
 
 (def lib 'net.clojars.walterl/updog)
-(def version "0.2.3-SNAPSHOT")
+(def version "0.3.0-SNAPSHOT")
 (def main 'updog.core)
 
 (defn test "Run the tests." [opts]
