@@ -1,10 +1,11 @@
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure   {:mvn/version "1.10.3"}
-        org.clojure/tools.cli {:mvn/version "1.0.206"}
-        cheshire/cheshire     {:mvn/version "5.10.2"}
-        babashka/fs           {:mvn/version "0.1.6"}
-        clj-http/clj-http     {:mvn/version "3.12.3"}
-        medley/medley         {:mvn/version "1.4.0"}}
+ :deps {org.clojure/clojure                 {:mvn/version "1.10.3"}
+        org.clojure/tools.cli               {:mvn/version "1.0.206"}
+        cheshire/cheshire                   {:mvn/version "5.10.2"}
+        clj-commons/fs                      {:mvn/version "1.6.310"}
+        clj-http/clj-http                   {:mvn/version "3.12.3"}
+        medley/medley                       {:mvn/version "1.4.0"}
+        org.apache.commons/commons-compress {:mvn/version "1.21"}}
  :aliases
  {:run-m {:main-opts ["-m" "updog.main"]}
   

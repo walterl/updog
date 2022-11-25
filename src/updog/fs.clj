@@ -1,15 +1,26 @@
-(ns updog.fs 
-  (:require [babashka.fs :as fs]))
+(ns updog.fs
+  (:require
+    [clojure.string :as str]
+    [me.raynes.fs :as fs])
+  (:import
+    [java.io File]))
+
+(def chmod fs/chmod)
+(def copy fs/copy+)
+(def exists? fs/exists?)
+(def extension (fnil fs/extension ""))
 
 (def ^:private invalid-dir-name "__INVALID_DIR_NAME__")
 
-(def exists? (fnil fs/exists? invalid-dir-name))
-(def file-name (-> (comp not-empty str fs/file-name)
-                   (fnil "")))
-(def path (-> (comp not-empty str fs/path)
-              (fnil "")))
-(def writable-dir? (-> (every-pred fs/writable? fs/directory?)
-                       (fnil invalid-dir-name)))
+(def writeable-dir?
+  (every-pred fs/writeable? (fnil fs/directory? invalid-dir-name)))
+
+(defn chmod-files
+  "Apply `perm`issions to all `files`."
+  [files perm]
+  (when (and perm files)
+    (doseq [filename files]
+      (chmod perm filename))))
 
 (defn expand-home
   [d]
@@ -17,9 +28,29 @@
           (fs/expand-home)
           (str)))
 
+(defn file-name
+  [x]
+  (when x
+    (not-empty (fs/name x))))
+
+(defn path
+  "Joins `args` with file separator."
+  [& args]
+  (str/join File/separator args))
+
+(defn exec-paths
+  []
+  (.split (System/getenv "PATH") File/pathSeparator))
+
 (def ^:dynamic *sys-path-dirs* nil)
 
 (defn sys-path-dirs
+  "Returns vector of `$PATH`."
   []
-  (or *sys-path-dirs*
-      (map str (fs/exec-paths))))
+  (or *sys-path-dirs* (exec-paths)))
+
+(def temp-dir
+  "Returns the current process's temporary directory."
+  (memoize
+    (fn temp-dir [& [suffix]]
+      (fs/temp-dir "updog-" (if suffix (str "-" suffix) "")))))

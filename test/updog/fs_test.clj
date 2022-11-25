@@ -26,7 +26,7 @@
                "/dev/null" ; not a dir
                "/proc"]] ; shouldn't be writable
       (testing (pr-str v)
-        (is (false? (fs/writable-dir? v)))))))
+        (is (false? (fs/writeable-dir? v)))))))
 
 (deftest expand-home-tests
   (testing "returns input for empty/nil value"

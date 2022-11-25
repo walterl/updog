@@ -17,7 +17,7 @@
 (s/def ::source #{:github-release})
 (s/def ::asset (s/or :asset  string?
                      :assets (s/coll-of string?)))
-(s/def ::install-dir (s/or :dir (s/and string? fs/writable-dir?)
+(s/def ::install-dir (s/or :dir (s/and string? fs/writeable-dir?)
                            :infer ::infer))
 (s/def ::install-files (s/or :all ::infer
                              :files (s/coll-of string?)))
@@ -25,7 +25,7 @@
 (def ^:private rx-mode #"[ugoa]*([-+=]([rwxXst]*|[ugo]))+|[-+=][0-7]+") ; From chmod(1)
 (s/def ::chmod (s/nilable (s/or :octal-mode (s/and string? #(re-matches rx-digits %))
                                 :str-mode   (s/and string? #(re-matches rx-mode %)))))
-(s/def ::archive-dir (s/nilable (s/and string? fs/writable-dir?)))
+(s/def ::archive-dir (s/nilable (s/and string? fs/writeable-dir?)))
 
 (s/def ::app (s/keys :req-un [::source ::asset ::install-dir ::install-files]
                      :opt-un [::gh/repo-slug ::chmod ::archive-dir]))
@@ -55,12 +55,12 @@
 (defn- maybe-find-install-dir
   [dir]
   (if (= ::infer dir)
-    (first (filter fs/writable-dir? (fs/sys-path-dirs)))
+    (first (filter fs/writeable-dir? (fs/sys-path-dirs)))
     dir))
 
 (defn- ensure-dir-writable
   [dir]
-  (when-not (fs/writable-dir? dir)
+  (when-not (fs/writeable-dir? dir)
     (throw (ex-info (str "Not a writable directory: " dir)
                     {:type ::invalid-dir, :dir dir}))))
 

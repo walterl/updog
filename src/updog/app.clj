@@ -4,9 +4,12 @@
     [clojure.pprint :refer [pprint]]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
+    [updog.archive :as archive]
     [updog.config :as config]
     [updog.fs :as fs]
-    [updog.github :as gh]))
+    [updog.github :as gh]
+    [updog.net :as net])
+  (:import clojure.lang.ExceptionInfo))
 
 (defn- command-candidates
   [{:keys [install-dir install-files], app-key :key}]
@@ -40,7 +43,7 @@
 
 (defn latest-version
   [{:keys [repo-slug] :as _config}]
-  (or (:tag_name (gh/fetch-latest-version repo-slug))
+  (or (:tag_name (gh/fetch-release-version repo-slug :latest))
       "0"))
 
 (defn- requires-update?
@@ -57,10 +60,41 @@
         ;; I.e. trust what upstream says is the latest, and use that.
         (not= installed latest))))
 
+(defn- latest-version-asset-urls
+  [{:keys [asset repo-slug]}]
+  (for [asset-substr asset
+        {:keys [label] :as url} (gh/fetch-release-asset-urls repo-slug)
+        :when (str/includes? label asset-substr)]
+    url))
+
+(defn- install-asset-files
+  [archive-filename label {:keys [install-dir install-files]}]
+  (try
+    (archive/extract archive-filename install-files install-dir)
+    ;; Assume it's an executable file
+    (catch ExceptionInfo e
+      (if (= ::archive/unsupported-archive (-> e ex-data :type))
+        (let [install-filename (fs/path install-dir label)]
+          (fs/copy archive-filename install-filename)
+          [install-filename])
+        (throw e)))))
+
+(defn- install-asset
+  [dl-filename label config]
+  (let [installed-files (install-asset-files dl-filename label config)]
+    (fs/chmod-files installed-files (:chmod config))))
+
+(defn- asset-filename
+  [label]
+  (fs/path (fs/temp-dir) label))
+
 (defn update!
   [config]
   (println "Update!" (pr-str config))
-  (throw (ex-info "Not yet implemented" {:type ::not-implemented}))
+  (let [{:keys [label download-url]} (first (latest-version-asset-urls config))
+        asset-filename (asset-filename label)]
+    (net/download-file download-url asset-filename)
+    (install-asset asset-filename label config))
   ::app-updated)
 
 (defn process
