@@ -17,7 +17,8 @@
 (s/def ::infer #{::infer})
 
 (s/def ::source #{:github-release})
-(s/def ::asset (s/or :asset  string?
+(s/def ::asset (s/or :infer ::infer
+                     :asset  string?
                      :assets (s/coll-of string?)))
 (s/def ::install-dir (s/or :dir (s/and string? writeable-dir?)
                            :infer ::infer))
@@ -46,13 +47,13 @@
 
 (def default
   {:source        :github-release
-   :asset         [""]
+   :asset         ::infer
    :install-dir   ::infer
    :install-files ::infer})
 
-(defn- wrap-vec
+(defn- wrap-vec-str
   [x]
-  (if-not (sequential? x) [x] x))
+  (if (string? x) [x] x))
 
 (defn- maybe-find-install-dir
   [dir]
@@ -108,7 +109,7 @@
 
       (doto (validate-app-conformity))
 
-      (update :asset wrap-vec)
+      (update :asset wrap-vec-str)
       (update :install-dir prep-install-dir)
       (update :repo-slug prep-repo-slug app-key)
       (doto (comp ensure-dir-writable :archive-dir))

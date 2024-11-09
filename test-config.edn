@@ -2,5 +2,7 @@
  {:install-dir "~/tmp/updog-test/bin"}
 
  :clj-kondo/clj-kondo
- {:asset "linux-static-amd64"
-  :download-archive-dir "~/tmp/updog-test/archive/Clojure"}}
+ {:archive-dir "~/tmp/updog-test/archive/Clojure"}
+
+ :clojure-lsp/clojure-lsp
+ {}}

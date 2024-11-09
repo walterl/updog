@@ -132,12 +132,75 @@
   (def repo-slug (:repo-slug config))
   )
 
-(defn- latest-version-asset-urls
-  [{:keys [asset repo-slug]}]
-  (for [asset-substr asset
-        {asset-name :name, :as url} (gh/fetch-release-assets repo-slug)
-        :when (str/includes? asset-name asset-substr)]
-    url))
+(defn- asset-name-has?
+  [asset name-part]
+  (nat-int? (.indexOf (str/split (:name asset) #"-") name-part)))
+
+(defn- most-applicable
+  [assets app-key]
+  (if (= 1 (count assets))
+    assets
+    (let [platform (str/lower-case (System/getProperty "os.name"))
+          arch (System/getProperty "os.arch")
+          ;; Filter for assets with names that start with app key
+          assets (or (seq (filter #(re-matches
+                                     (re-pattern (str "^" (name app-key) "\\b.*"))
+                                     (:name %))
+                                  assets))
+                     assets)
+          ;; Filter for assets with a platform tag
+          assets (or (seq (filter #(asset-name-has? % platform) assets))
+                     assets)
+          ;; Filter for assets with an architecture tag
+          assets (or (seq (filter #(asset-name-has? % arch) assets))
+                     assets)
+          ;; Filter for assets with an alternative architecture tag
+          assets (if (= "amd64" arch)
+                   ; Sometimes "x86_64" is used rather than "amd64"
+                   (or (seq (filter #(asset-name-has? % "x86_64") assets))
+                       assets)
+                   assets)
+          ;; Prefer static assets
+          assets (or (seq (filter #(asset-name-has? % "static") assets))
+                     assets)]
+      (vec assets))))
+
+(comment
+  (map :name assets)
+  (map :split-name assets)
+  (filter #(contains? (:split-name %) platform) assets)
+  (.indexOf ["clojure" "lsp" "native" "linux" "amd64.zip"] "linuxx")
+  (nat-int? -1)
+  ,)
+
+(defn- latest-release-assets
+  [{:keys [app-key asset repo-slug]}]
+  (let [assets (gh/fetch-release-assets repo-slug)]
+    (if (= ::config/infer asset)
+      (most-applicable assets app-key)
+      (for [asset-substr asset
+            {asset-name :name, :as asset} assets
+            :when (str/includes? asset-name asset-substr)]
+        asset))))
+
+(comment
+  (def rassets (vec *1))
+  (def platform (str/lower-case (System/getProperty "os.name")))
+  (def arch (System/getProperty "os.arch"))
+  (seq (System/getProperties))
+  (System/getProperty "line.separator")
+  (let [combinations #{(str platform "-" arch) (str arch "-" platform)}]
+    (->> rassets
+         (filter (fn [a] (some #(str/includes? (:name a) %) combinations)))
+         (filter (fn [a] (#{".zip" ".bz2" ".gz"} (fs/extension (:name a)))))
+         (map :name)))
+
+  (fs/extension "foo.tar.bz2")
+
+  (filter
+    #(re-matches (re-pattern (str ".*\\b" platform "\\b.*")) (:name %))
+    rassets)
+  ,)
 
 (defn- install-asset-files
   "Extract `install-files` from `archive-filename` into `install-dir`.
@@ -176,7 +239,7 @@
 (defn update!
   [{:keys [archive-dir] :as config}]
   (println "Update!" (pr-str config))
-  (let [{:keys [download-url tag-name], asset-name :name} (first (latest-version-asset-urls config))
+  (let [{:keys [download-url tag-name], asset-name :name} (first (latest-release-assets config))
         dl-dest (net/download-file download-url (asset-filename asset-name))
         installed-files (vec (install-asset dl-dest config))]
     (archive-downloaded! archive-dir dl-dest)
