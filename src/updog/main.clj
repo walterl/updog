@@ -1,24 +1,26 @@
 (ns updog.main
   (:require
+    [clojure.pprint :refer [pprint]]
     [updog.app :as app]
     [updog.config :as config])
   (:gen-class))
 
 (defn update-apps!
-  [{:keys [:updog/defaults] :as config}]
+  [{:updog/keys [defaults] :as config}]
   (for [[app-key app-config] config
-        :when (not= :updog/defaults app-key)]
+        :when (not= :updog/defaults app-key)
+        :let [config (-> (merge defaults app-config)
+                         (config/app-prep app-key))]]
     {::key app-key
      ::config config
-     ::result (-> (merge defaults app-config)
-                  (config/app-prep app-key)
-                  (app/process))}))
+     ::result (app/process config)}))
 
 (defn -main
   [config-fname]
-  (update-apps! (config/read config-fname)))
+  (pprint (update-apps! (config/read config-fname))))
 
 (comment
+  (def config-fname "test-config.edn")
   (update-apps! {:updog/defaults
                  {:install-dir "~/.local/bin/"
                   :archive-dir "~/tmp"}
