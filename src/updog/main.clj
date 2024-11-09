@@ -21,6 +21,14 @@
 
 (comment
   (def config-fname "test-config.edn")
+  (def config (config/read config-fname))
+  (def defaults (:updog/defaults config))
+  (def app-key :clj-kondo/clj-kondo)
+  (def app-key :clojure-lsp/clojure-lsp)
+  (def app-config (get config app-key))
+  (def prepped-config (-> (merge defaults app-config)
+                          (config/app-prep app-key)))
+
   (update-apps! {:updog/defaults
                  {:install-dir "~/.local/bin/"
                   :archive-dir "~/tmp"}

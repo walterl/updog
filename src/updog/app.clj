@@ -45,10 +45,10 @@
   [{:keys [config] :as upd}]
   (merge
     (select-keys upd [:installed-version :installed-files :asset-download-url :asset-downloaded-to])
-    (select-keys config [:download-archive-dir])
+    (select-keys config [:archive-dir])
     {:event (:status upd)
      :timestamp (now)
-     :app-key (:key config)}))
+     :app-key (:app-key config)}))
 
 (defn- log-update!
   "Record `upd`ate in update log file."
@@ -60,7 +60,7 @@
 (defn- command-candidates
   "Returns existing `install-files` in `install-dir`, including files named for
   `app-key`'s name or namespace."
-  [{:keys [install-dir install-files], app-key :key}]
+  [{:keys [app-key install-dir install-files]}]
   (->> (reduce into []
                [(when (sequential? install-files)
                   (map #(fs/file-name %) install-files))
@@ -102,8 +102,8 @@
 (defn installed-version
   ([config]
    (installed-version config (read-update-log)))
-  ([config update-log]
-   (or (last-installed-version (:key config) update-log)
+  ([{:keys [app-key] :as config} update-log]
+   (or (last-installed-version app-key update-log)
        (when-let [cmd (first (command-candidates config))]
          (cmd-version cmd)))))
 
@@ -128,6 +128,7 @@
 
 (comment
   (def asset (:asset config))
+  (def app-key (:app-key config))
   (def repo-slug (:repo-slug config))
   )
 
@@ -173,12 +174,12 @@
       (fs/copy dl-dest arch-dest))))
 
 (defn update!
-  [{:keys [download-archive-dir] :as config}]
+  [{:keys [archive-dir] :as config}]
   (println "Update!" (pr-str config))
   (let [{:keys [download-url tag-name], asset-name :name} (first (latest-version-asset-urls config))
         dl-dest (net/download-file download-url (asset-filename asset-name))
         installed-files (vec (install-asset dl-dest config))]
-    (archive-downloaded! download-archive-dir dl-dest)
+    (archive-downloaded! archive-dir dl-dest)
     {:status ::app-updated
      :config config
      :installed-version tag-name
@@ -200,6 +201,7 @@
     result))
 
 (comment
+  (def config updog.main/prepped-config)
   (def config (config/app-prep {} :walterl/updog))
   (def config (config/app-prep
                 {:asset "linux-amd64.zip.sha256"

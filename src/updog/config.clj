@@ -34,7 +34,7 @@
 
 (comment
   (s/explain ::app
-             {:key :walterl/updog
+             {:app-key :walterl/updog
               :source :github-releasex
               :asset [""]
               :install-dir ""
@@ -101,7 +101,7 @@
   values."
   [config app-key]
   (-> (merge default config)
-      (assoc :key app-key)
+      (assoc :app-key app-key)
 
       (m/update-existing :install-dir expand-home)
       (m/update-existing :archive-dir expand-home)

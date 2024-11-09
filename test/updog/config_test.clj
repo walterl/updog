@@ -9,11 +9,11 @@
 (deftest app-prep-tests
   (binding [fs/*sys-path-dirs* ["/tmp"]]
     (testing "empty config generates default config"
-      (is (= {:source :github-release
+      (is (= {:app-key :walterl/updog
+              :source :github-release
               :asset [""]
               :install-dir "/tmp"
-              :install-files :updog.config/infer
-              :key :walterl/updog
+              :install-files ::cfg/infer
               :repo-slug "walterl/updog"}
              (cfg/app-prep {} :walterl/updog))))
     (testing "fails on invalid input config"
