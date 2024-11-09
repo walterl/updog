@@ -25,7 +25,7 @@
   "Get version from running `cmd --version`."
   [cmd]
   (try
-    (when (fs/exists? cmd)
+    (when (and (fs/exists? cmd) (fs/executable? cmd))
       (-> (sh cmd "--version") ; => {:out "clj-kondo v2022.08.03\n"}
           :out                 ; => "clj-kondo v2022.08.03\n"
           str/trim             ; => "clj-kondo v2022.08.03"
