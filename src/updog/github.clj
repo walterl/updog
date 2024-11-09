@@ -1,5 +1,7 @@
 (ns updog.github
   (:require
+    [camel-snake-kebab.core :as csk]
+    [camel-snake-kebab.extras :as cske]
     [clojure.spec.alpha :as s]
     [updog.net :as net]))
 
@@ -9,28 +11,37 @@
 (defn fetch-release-version
   [repo release]
   (let [repo-release-url (format github-releases-url repo)]
-    (if (= :latest release)
-      (net/fetch-json (str repo-release-url "/latest"))
-      (->> (net/fetch-json repo-release-url)
-           (filter #(= (:tag_name %) release))
-           first))))
+    (cske/transform-keys
+      csk/->kebab-case-keyword
+      (if (= :latest release)
+        (net/fetch-json (str repo-release-url "/latest"))
+        (->> (net/fetch-json repo-release-url)
+             (filter #(= (:tag_name %) release))
+             first)))))
 
 (comment
   (fetch-release-version "clj-kondo/clj-kondo" :latest)
   (fetch-release-version "clj-kondo/clj-kondo" "v2022.06.22")
   ,)
 
-(defn fetch-release-asset-urls
+(comment
+  (def repo "walterl/updog")
+  (def release :latest)
+  )
+
+(defn fetch-release-assets
   ([repo]
-   (fetch-release-asset-urls repo :latest))
+   (fetch-release-assets repo :latest))
   ([repo release]
-   (let [{:keys [assets]} (fetch-release-version repo release)]
-     (for [{:keys [label], download-url :browser_download_url} assets]
-       {:label label, :download-url download-url}))))
+   (let [{:keys [assets tag-name]} (fetch-release-version repo release)]
+     (for [asset assets]
+       (assoc (select-keys asset [:name :label :size :content-type :created-at :updated-at])
+              :download-url (:browser-download-url asset)
+              :tag-name tag-name)))))
 
 (comment
-  (fetch-release-asset-urls "clj-kondo/clj-kondo")
-  (fetch-release-asset-urls "clj-kondo/clj-kondo" "v2022.06.22")
+  (fetch-release-assets "clj-kondo/clj-kondo")
+  (fetch-release-assets "clj-kondo/clj-kondo" "v2022.06.22")
   ,)
 
 (defn- valid-repo-slug?

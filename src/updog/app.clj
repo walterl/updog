@@ -43,7 +43,7 @@
 
 (defn latest-version
   [{:keys [repo-slug] :as _config}]
-  (or (:tag_name (gh/fetch-release-version repo-slug :latest))
+  (or (:tag-name (gh/fetch-release-version repo-slug :latest))
       "0"))
 
 (defn- requires-update?
