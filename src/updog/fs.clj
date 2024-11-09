@@ -8,7 +8,9 @@
 (def chmod fs/chmod)
 (def copy fs/copy+)
 (def exists? fs/exists?)
+(def executable? fs/executable?)
 (def extension (fnil fs/extension ""))
+(def parent (comp str fs/parent))
 
 (def ^:private invalid-dir-name "__INVALID_DIR_NAME__")
 
@@ -54,3 +56,20 @@
   (memoize
     (fn temp-dir [& [suffix]]
       (fs/temp-dir "updog-" (if suffix (str "-" suffix) "")))))
+
+(defn ensure-dir!
+  "Create directory (and parent(s)) if it doesn't exist."
+  [dir]
+  (when-not (fs/directory? dir)
+    (fs/mkdirs dir)))
+
+(def PERM_R 4)
+(def PERM_W 2)
+(def PERM_X 1)
+
+(defn unpack-perms
+  "Unpack user, group and \"other\" permissions from given UNIX `mode`."
+  [mode]
+  {:user (mod (int (/ mode (* 8 8))) 8)
+   :group (mod (int (/ mode 8)) 8)
+   :other (mod mode 8)})
