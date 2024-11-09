@@ -1,5 +1,5 @@
 (ns updog.config
-  (:refer-clojure :exclude [read]) 
+  (:refer-clojure :exclude [read])
   (:require
     [clojure.edn :as edn]
     [clojure.spec.alpha :as s]
@@ -11,13 +11,15 @@
   [fname]
   (edn/read-string (slurp fname)))
 
+(def writeable-dir? (comp fs/writeable-dir? fs/expand-home))
+
 ;; TODO Add generators for all relevant specs below
 (s/def ::infer #{::infer})
 
 (s/def ::source #{:github-release})
 (s/def ::asset (s/or :asset  string?
                      :assets (s/coll-of string?)))
-(s/def ::install-dir (s/or :dir (s/and string? fs/writeable-dir?)
+(s/def ::install-dir (s/or :dir (s/and string? writeable-dir?)
                            :infer ::infer))
 (s/def ::install-files (s/or :all ::infer
                              :files (s/coll-of string?)))
@@ -25,7 +27,7 @@
 (def ^:private rx-mode #"[ugoa]*([-+=]([rwxXst]*|[ugo]))+|[-+=][0-7]+") ; From chmod(1)
 (s/def ::chmod (s/nilable (s/or :octal-mode (s/and string? #(re-matches rx-digits %))
                                 :str-mode   (s/and string? #(re-matches rx-mode %)))))
-(s/def ::archive-dir (s/nilable (s/and string? fs/writeable-dir?)))
+(s/def ::archive-dir (s/nilable (s/and string? writeable-dir?)))
 
 (s/def ::app (s/keys :req-un [::source ::asset ::install-dir ::install-files]
                      :opt-un [::gh/repo-slug ::chmod ::archive-dir]))
@@ -55,12 +57,14 @@
 (defn- maybe-find-install-dir
   [dir]
   (if (= ::infer dir)
-    (first (filter fs/writeable-dir? (fs/sys-path-dirs)))
+    (let [write-dir (first (filter fs/writeable-dir? (fs/sys-path-dirs)))]
+      (println (str "[WARNING] Using install directory from $PATH: " write-dir))
+      write-dir)
     dir))
 
 (defn- ensure-dir-writable
   [dir]
-  (when-not (fs/writeable-dir? dir)
+  (when-not (writeable-dir? dir)
     (throw (ex-info (str "Not a writable directory: " dir)
                     {:type ::invalid-dir, :dir dir}))))
 
@@ -96,8 +100,7 @@
   "Prepare app config by merging in default config and inferring possible
   values."
   [config app-key]
-  (-> ;; 
-      (merge default config)
+  (-> (merge default config)
       (assoc :key app-key)
 
       (m/update-existing :install-dir expand-home)
