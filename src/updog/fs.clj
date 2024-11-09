@@ -31,7 +31,7 @@
 (defn file-name
   [x]
   (when x
-    (not-empty (fs/name x))))
+    (not-empty (fs/base-name x))))
 
 (defn path
   "Joins `args` with file separator."
