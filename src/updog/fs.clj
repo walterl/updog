@@ -33,13 +33,13 @@
 
 (defn file-name
   [x]
-  (when x
+  (when (not-empty x)
     (not-empty (fs/base-name x))))
 
 (defn path
   "Joins `args` with file separator."
   [& args]
-  (str/join File/separator args))
+  (not-empty (str/join File/separator args)))
 
 (defn exec-paths
   []

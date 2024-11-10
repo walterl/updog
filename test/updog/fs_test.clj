@@ -1,6 +1,6 @@
 (ns updog.fs-test
   (:require
-    [babashka.fs :as bfs]
+    [me.raynes.fs :as rfs]
     [clojure.test :refer [deftest is testing]]
     [updog.fs :as fs]))
 
@@ -34,5 +34,5 @@
       (testing (pr-str v)
         (is (= v (fs/expand-home v))))))
   (testing "expands ~ in strings"
-    (is (= (str (bfs/expand-home "~") "/foo")
+    (is (= (str (rfs/expand-home "~") "/foo")
            (fs/expand-home "~/foo")))))
