@@ -144,9 +144,22 @@
   (def repo-slug (:repo-slug config))
   )
 
+(defn- split-asset-name
+  [asset-name]
+  (-> asset-name
+      (as-> a (str/replace a (fs/extension a) ""))
+      (as-> a (if (str/ends-with? a ".tar")
+                (subs a 0 (- (count a) (count ".tar")))
+                a))
+      (str/split
+        (re-pattern
+          (if (< (count (filter #{\-} asset-name))
+                 (count (filter #{\_} asset-name)))
+            "_" "-")))))
+
 (defn- asset-name-has?
-  [asset name-part]
-  (nat-int? (.indexOf (str/split (:name asset) #"-") name-part)))
+  [{asset-name :name} name-part]
+  (nat-int? (.indexOf (split-asset-name asset-name) name-part)))
 
 (defn- most-applicable
   [assets app-key]
