@@ -1,10 +1,13 @@
 (ns updog.main
   (:require
+    [expound.alpha :as expound]
     [taoensso.encore :as enc]
     [taoensso.timbre :as log]
     [updog.app :as app]
     [updog.config :as config])
-  (:gen-class))
+  (:gen-class)
+  (:import
+    [clojure.lang ExceptionInfo]))
 
 (def ^:private level-marker
   {:trace  "[🔍 TRACE]"
@@ -58,14 +61,19 @@
   [{:updog/keys [defaults] :as config}]
   (doall
     (for [[app-key app-config] config
-          :when (not= :updog/defaults app-key)
-          :let [config (-> (merge defaults app-config)
-                           (config/app-prep app-key))
-                result {::config config
-                        ::result (app/process config)}]]
+          :let [result {::config app-config
+                        ::result (app/process app-config)}]]
       (do
         (log-update-result result)
         result))))
+
+(defn- prepped-app-configs
+  [{:updog/keys [defaults] :as config}]
+  (into {}
+        (for [[app-key app-config] config
+              :when (not= (namespace app-key) "updog")]
+          [app-key (-> (merge defaults app-config)
+                       (config/app-prep app-key))])))
 
 (defn -main
   [config-fname]
@@ -73,17 +81,21 @@
         updog-config (:updog/config config)
         config (dissoc config :updog/config)]
     (init-logging! (get updog-config :log-level default-log-level))
-    (update-apps! config)))
+    (try
+      (update-apps! (prepped-app-configs config))
+      (catch ExceptionInfo ex
+        (let [data (ex-data ex)]
+          (if (= ::config/invalid-app-config (:type data))
+            (expound/printer (:explain-data data))
+            (log/error "Error updating apps:" ex)))))))
 
 (comment
   (def config-fname "test-config.edn")
-  (def config (config/read config-fname))
-  (def defaults (:updog/defaults config))
+  (def config (prepped-app-configs (config/read config-fname)))
   (def app-key :clj-kondo/clj-kondo)
   (def app-key :clojure-lsp/clojure-lsp)
+  (def app-key :babashka/babashka)
   (def app-config (get config app-key))
-  (def prepped-config (-> (merge defaults app-config)
-                          (config/app-prep app-key)))
 
   (update-apps! {:updog/defaults
                  {:install-dir "~/.local/bin/"

@@ -251,7 +251,7 @@
 (defn update!
   [{:keys [app-key archive-dir] :as config}]
   (log/info "⚙️  Updating app" app-key)
-  (log/debug "Update app config:" config)
+  (log/debug "Update app config:" (with-out-str (pprint config)))
   (let [{:keys [download-url tag-name], asset-name :name} (first (latest-release-assets config))
         dl-dest (net/download-file download-url (asset-filename asset-name))
         installed-files (vec (install-asset dl-dest config))]
@@ -265,6 +265,7 @@
 (defn process
   [config]
   (s/assert ::config/app config)
+  (log/debug "Processing app with config:" (with-out-str (pprint config)))
   (let [installed (installed-version config)
         latest (latest-version config)
         result (if (requires-update? config installed latest)
@@ -282,7 +283,8 @@
     result))
 
 (comment
-  (def config updog.main/prepped-config)
+  (def app-key updog.main/app-key)
+  (def config updog.main/app-config)
   (def config (config/app-prep {} :walterl/updog))
   (def config (config/app-prep
                 {:asset "linux-amd64.zip.sha256"
