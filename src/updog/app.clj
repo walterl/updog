@@ -273,7 +273,6 @@
 (defn update!
   [{:keys [app-key archive-dir] :as config}]
   (log/info "⚙️  Updating app" app-key)
-  (log/debug "Update app config:" (with-out-str (pprint config)))
   (let [{:keys [download-url tag-name], asset-name :name} (first (latest-release-assets config))
         dl-dest (net/download-file download-url (asset-filename asset-name))
         installed-files (vec (install-asset dl-dest config))]
