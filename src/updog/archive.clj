@@ -47,7 +47,8 @@
 
 (defmethod extract ".zip"
   [filename archive-files dest-dir]
-  (extract-archive (ZipFile. filename) archive-files dest-dir))
+  (with-open [zf (ZipFile. filename)]
+    (extract-archive zf archive-files dest-dir)))
 
 (defmethod extract ".bz2"
   [filename archive-files dest-dir]
@@ -69,7 +70,8 @@
 
 (defmethod extract ".tar"
   [filename archive-files dest-dir]
-  (extract-archive (TarFile. (io/file filename)) archive-files dest-dir))
+  (with-open [tf (TarFile. (io/file filename))]
+    (extract-archive tf archive-files dest-dir)))
 
 (comment
   (import '[org.apache.commons.compress.compressors.gzip GzipCompressorInputStream])
@@ -117,10 +119,11 @@
 
 (defmethod list-executables ".zip"
   [filename]
-  (for [zip-entry (enumeration-seq (.getEntries (ZipFile. filename)))
-        :when (and (not (.isDirectory zip-entry))
-                   (executable? (.getUnixMode zip-entry)))]
-    (.getName zip-entry)))
+  (with-open [zf (ZipFile. filename)]
+    (for [zip-entry (enumeration-seq (.getEntries zf))
+          :when (and (not (.isDirectory zip-entry))
+                     (executable? (.getUnixMode zip-entry)))]
+      (.getName zip-entry))))
 
 (defn- tar-executables
   [^TarArchiveInputStream istream]
@@ -136,11 +139,17 @@
 
 (defmethod list-executables ".bz2"
   [filename]
-  (tar-executables (TarArchiveInputStream. (BZip2CompressorInputStream. (io/input-stream filename)))))
+  (with-open [is (io/input-stream filename)
+              bzis (BZip2CompressorInputStream. is)
+              tis (TarArchiveInputStream. bzis)]
+    (tar-executables tis)))
 
 (defmethod list-executables ".gz"
   [filename]
-  (tar-executables (TarArchiveInputStream. (GzipCompressorInputStream. (io/input-stream filename)))))
+  (with-open [is (io/input-stream filename)
+              gzis (GzipCompressorInputStream. is)
+              tis (TarArchiveInputStream. gzis)]
+    (tar-executables tis)))
 
 (defmulti largest-file
   "Returns the name of the largest file in the specified archive."
@@ -153,14 +162,15 @@
 
 (defmethod largest-file ".zip"
   [filename]
-  (:name (reduce
-           (fn [largest curr]
-             (if (< (get largest :size 0) (.getSize curr))
-               {:name (.getName curr)
-                :size (.getSize curr)}
-               largest))
-           {}
-           (enumeration-seq (.getEntries (ZipFile. filename))))))
+  (with-open [zf (ZipFile. filename)]
+    (:name (reduce
+             (fn [largest curr]
+               (if (< (get largest :size 0) (.getSize curr))
+                 {:name (.getName curr)
+                  :size (.getSize curr)}
+                 largest))
+             {}
+             (enumeration-seq (.getEntries zf))))))
 
 (defn- largest-tar-entry
   [^TarArchiveInputStream istream]
@@ -176,8 +186,14 @@
 
 (defmethod largest-file ".bz2"
   [filename]
-  (largest-tar-entry (TarArchiveInputStream. (BZip2CompressorInputStream. (io/input-stream filename)))))
+  (with-open [is (io/input-stream filename)
+              bzis (BZip2CompressorInputStream. is)
+              tis (TarArchiveInputStream. bzis)]
+    (largest-tar-entry tis)))
 
 (defmethod largest-file ".gz"
   [filename]
-  (largest-tar-entry (TarArchiveInputStream. (GzipCompressorInputStream. (io/input-stream filename)))))
+  (with-open [is (io/input-stream filename)
+              bzis (GzipCompressorInputStream. is)
+              tis (TarArchiveInputStream. bzis)]
+    (largest-tar-entry tis)))

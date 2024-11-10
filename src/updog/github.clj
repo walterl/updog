@@ -17,7 +17,7 @@
         (net/fetch-json (str repo-release-url "/latest"))
         (->> (net/fetch-json repo-release-url)
              (filter #(= (:tag_name %) release))
-             first)))))
+             (first))))))
 
 (comment
   (fetch-release-version "clj-kondo/clj-kondo" :latest)
