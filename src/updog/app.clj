@@ -42,20 +42,19 @@
   (.format (ZonedDateTime/now) DateTimeFormatter/ISO_OFFSET_DATE_TIME))
 
 (defn- log-entry
-  [{:keys [config] :as upd}]
+  [upd config]
   (merge
     (select-keys upd [:installed-version :installed-files :asset-download-url :asset-downloaded-to])
-    (select-keys config [:archive-dir])
+    (select-keys config [:app-key :archive-dir])
     {:event (:status upd)
-     :timestamp (now)
-     :app-key (:app-key config)}))
+     :timestamp (now)}))
 
 (defn- log-update!
   "Record `upd`ate in update log file."
-  [upd]
+  [upd config]
   (spit
     (update-log-filename)
-    (with-out-str (pprint (conj (read-update-log) (log-entry upd))))))
+    (with-out-str (pprint (conj (read-update-log) (log-entry upd config))))))
 
 (defn- command-candidates
   "Returns existing `install-files` in `install-dir`, including files named for
@@ -244,7 +243,6 @@
         installed-files (vec (install-asset dl-dest config))]
     (archive-downloaded! archive-dir dl-dest)
     {:status ::app-updated
-     :config config
      :installed-version tag-name
      :installed-files installed-files
      :download-url download-url
@@ -260,7 +258,7 @@
                      (println "Error!" e)
                      {:status ::unexpected-error, :error e}))
                  {:status ::already-up-to-date, :config config})]
-    (log-update! result)
+    (log-update! result config)
     result))
 
 (comment
