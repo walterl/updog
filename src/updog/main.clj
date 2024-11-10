@@ -81,6 +81,8 @@
         updog-config (:updog/config config)
         config (dissoc config :updog/config)]
     (init-logging! (get updog-config :log-level default-log-level))
+    (when-let [log-fname (:update-log-file updog-config)]
+      (reset! app/custom-log-filename log-fname))
     (try
       (update-apps! (prepped-app-configs config))
       (catch ExceptionInfo ex

@@ -1,4 +1,6 @@
-{:updog/config {:log-level :debug}
+{:updog/config
+ {:log-level :debug
+  :update-log-file "~/.updog/update-log.edn"}
 
  :updog/defaults
  {:install-dir "~/.local/bin"

@@ -17,16 +17,18 @@
 
 (defn- data-dir
   []
-  (fs/path
-    (fs/expand-home (or (System/getenv "XDG_DATA_HOME") "~/.local/share"))
-    "updog"))
+  (fs/path (or (System/getenv "XDG_DATA_HOME") "~/.local/share") "updog"))
 
 (def ^:dynamic *update-log-filename* nil)
 
+(defonce custom-log-filename (atom nil))
+
 (defn- update-log-filename
   []
-  (or *update-log-filename*
-      (fs/path (data-dir) "update-log.edn")))
+  (fs/expand-home
+    (or *update-log-filename*
+        @custom-log-filename
+        (fs/path (data-dir) "update-log.edn"))))
 
 (defn- read-update-log
   ([]
