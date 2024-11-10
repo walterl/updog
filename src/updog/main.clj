@@ -44,16 +44,16 @@
         {:keys [status]} result]
     (cond
       (= status ::app/app-updated)
-      (log/info app-key "updated ✅")
+      (log/info "✅" app-key "updated")
 
       (= status ::app/already-up-to-date)
-      (log/info app-key "already up-to-date 🟰")
+      (log/info "🟰" app-key "already up-to-date at version" (:installed-version result))
 
       (= status ::app/unexpected-error)
       (log/error "An unexpected error has occurred:" (:error result))
 
       :else
-      (log/warn "Unexpected update status ❓:" status))))
+      (log/warn "Unexpected update status:" status))))
 
 (defn update-apps!
   [{:updog/keys [defaults] :as config}]

@@ -112,17 +112,15 @@
       "0"))
 
 (defn- requires-update?
-  [config]
-  (let [installed (installed-version config)
-        latest (latest-version config)]
-    (log/debug "Installed version:" installed "| Latest version:" latest)
-    (or (empty? (command-candidates config))
-        (nil? installed)
-        ;; If the latest published version is different than the one we have, we
-        ;; should probably change to it, regardless of whether it's semantically
-        ;; newer or not. This is to account for accidental or retracted releases.
-        ;; I.e. trust what upstream says is the latest, and use that.
-        (not= installed latest))))
+  [config installed-version latest-version]
+  (log/debug "Installed version:" installed-version "| Latest version:" latest-version)
+  (or (empty? (command-candidates config))
+      (nil? installed-version)
+      ;; If the latest published version is different than the one we have, we
+      ;; should probably change to it, regardless of whether it's semantically
+      ;; newer or not. This is to account for accidental or retracted releases.
+      ;; I.e. trust what upstream says is the latest, and use that.
+      (not= installed-version latest-version)))
 
 (comment
   (def asset (:asset config))
@@ -236,7 +234,7 @@
 
 (defn update!
   [{:keys [app-key archive-dir] :as config}]
-  (log/info "Updating app" app-key)
+  (log/info "⚙️  Updating app" app-key)
   (log/debug "Update app config:" config)
   (let [{:keys [download-url tag-name], asset-name :name} (first (latest-release-assets config))
         dl-dest (net/download-file download-url (asset-filename asset-name))
@@ -251,12 +249,19 @@
 (defn process
   [config]
   (s/assert ::config/app config)
-  (let [result (if (requires-update? config)
+  (let [installed (installed-version config)
+        latest (latest-version config)
+        result (if (requires-update? config installed latest)
                  (try
                    (update! config)
                    (catch Exception e
-                     {:status ::unexpected-error, :error e}))
-                 {:status ::already-up-to-date, :config config})]
+                     {:status ::unexpected-error
+                      :installed-version installed
+                      :latest-version latest
+                      :error e}))
+                 {:status ::already-up-to-date
+                  :installed-version installed
+                  :latest-version latest})]
     (log-update! result config)
     result))
 
