@@ -3,9 +3,11 @@
     [clojure.string :as str]
     [me.raynes.fs :as fs])
   (:import
-    [java.io File]))
+    [java.io File]
+    [java.net URI]
+    [java.nio.file Files Paths]
+    [java.nio.file.attribute PosixFilePermission]))
 
-(def chmod fs/chmod)
 (def copy fs/copy+)
 (def delete fs/delete)
 (def exists? fs/exists?)
@@ -18,12 +20,37 @@
 (def writeable-dir?
   (every-pred fs/writeable? (fnil fs/directory? invalid-dir-name)))
 
+(defn- expand-perms
+  [iperms]
+  (filterv
+    some?
+    [(when (pos-int? (bit-and (int (/ iperms (* 8 8))) 04))
+       PosixFilePermission/OWNER_READ)
+     (when (pos-int? (bit-and (int (/ iperms (* 8 8))) 02))
+       PosixFilePermission/OWNER_WRITE)
+     (when (pos-int? (bit-and (int (/ iperms (* 8 8))) 01))
+       PosixFilePermission/OWNER_EXECUTE)
+     (when (pos-int? (bit-and (int (/ iperms 8)) 04))
+       PosixFilePermission/GROUP_READ)
+     (when (pos-int? (bit-and (int (/ iperms 8)) 02))
+       PosixFilePermission/GROUP_WRITE)
+     (when (pos-int? (bit-and (int (/ iperms 8)) 01))
+       PosixFilePermission/GROUP_EXECUTE)
+     (when (pos-int? (bit-and iperms 04))
+       PosixFilePermission/OTHERS_READ)
+     (when (pos-int? (bit-and iperms 02))
+       PosixFilePermission/OTHERS_WRITE)
+     (when (pos-int? (bit-and iperms 01))
+       PosixFilePermission/OTHERS_EXECUTE)]))
+
 (defn chmod-files
-  "Apply `perm`issions to all `files`."
+  "Apply octal `perm`issions to all `files`."
   [files perm]
-  (when (and perm files)
+  (when (and perm (not-empty files))
     (doseq [filename files]
-      (chmod perm filename))))
+      (Files/setPosixFilePermissions
+        (Paths/get (URI/create (str "file://" filename)))
+        (set (expand-perms perm))))))
 
 (defn expand-home
   [d]

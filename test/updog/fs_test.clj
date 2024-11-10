@@ -2,7 +2,9 @@
   (:require
     [me.raynes.fs :as rfs]
     [clojure.test :refer [deftest is testing]]
-    [updog.fs :as fs]))
+    [updog.fs :as fs])
+  (:import
+    [java.nio.file.attribute PosixFilePermission]))
 
 (deftest exists?-tests
   (testing "returns false for nil input"
@@ -36,3 +38,18 @@
   (testing "expands ~ in strings"
     (is (= (str (rfs/expand-home "~") "/foo")
            (fs/expand-home "~/foo")))))
+
+(deftest expand-pems-tests
+  (testing "0750"
+    (is (= (#'fs/expand-perms 0750)
+           [PosixFilePermission/OWNER_READ
+            PosixFilePermission/OWNER_WRITE
+            PosixFilePermission/OWNER_EXECUTE
+            PosixFilePermission/GROUP_READ
+            PosixFilePermission/GROUP_EXECUTE])))
+  (testing "0644"
+    (is (= (#'fs/expand-perms 0644)
+           [PosixFilePermission/OWNER_READ
+            PosixFilePermission/OWNER_WRITE
+            PosixFilePermission/GROUP_READ
+            PosixFilePermission/OTHERS_READ]))))
