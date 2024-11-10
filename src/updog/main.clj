@@ -30,13 +30,13 @@
          (when-let [err ?err]
            (str enc/system-newline (log/stacktrace err opts))))))))
 
+(def ^:private default-log-level :info)
+
 (defn init-logging!
   "See `(clojure.repl/doc log/*config*)` for documentation on log levels."
-  ([] (init-logging! :info))
-  ([log-level]
-   (log/swap-config! #(assoc % :output-fn simple-output-fn))
-   (when log-level
-     (log/set-level! log-level))))
+  [log-level]
+  (log/swap-config! #(assoc % :output-fn simple-output-fn))
+  (log/set-level! (or log-level default-log-level)))
 
 (defn- log-update-result
   [{::keys [config result]}]
@@ -70,8 +70,11 @@
 
 (defn -main
   [config-fname]
-  (init-logging!)
-  (update-apps! (config/read config-fname)))
+  (let [config (config/read config-fname)
+        updog-config (:updog/config config)
+        config (dissoc config :updog/config)]
+    (init-logging! (get updog-config :log-level default-log-level))
+    (update-apps! config)))
 
 (comment
   (def config-fname "test-config.edn")
