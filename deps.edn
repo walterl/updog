@@ -5,6 +5,7 @@
         cheshire/cheshire                   {:mvn/version "5.10.2"}
         clj-commons/fs                      {:mvn/version "1.6.310"}
         clj-http/clj-http                   {:mvn/version "3.12.3"}
+        com.taoensso/timbre                 {:mvn/version "6.6.1"}
         medley/medley                       {:mvn/version "1.4.0"}
         org.apache.commons/commons-compress {:mvn/version "1.21"}}
  :aliases
