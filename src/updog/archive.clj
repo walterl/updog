@@ -118,7 +118,8 @@
 (defmethod list-executables ".zip"
   [filename]
   (for [zip-entry (enumeration-seq (.getEntries (ZipFile. filename)))
-        :when (executable? (.getUnixMode zip-entry))]
+        :when (and (not (.isDirectory zip-entry))
+                   (executable? (.getUnixMode zip-entry)))]
     (.getName zip-entry)))
 
 (defn- tar-executables
@@ -127,7 +128,8 @@
     (let [entry (.getNextEntry istream)]
       (if (some? entry)
         (recur
-          (if (executable? (.getMode entry))
+          (if (and (not (.isDirectory entry))
+                   (executable? (.getMode entry)))
             (conj names (.getName entry))
             names))
         names))))
