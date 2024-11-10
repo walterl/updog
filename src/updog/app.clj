@@ -107,7 +107,8 @@
 (defn- last-installed-version
   [app-key update-log]
   (some->> update-log
-           (filter #(and (= app-key (:app-key %)) (= ::app-updated (:event %))))
+           (filter #(and (= app-key (:app-key %))
+                         (#{::app-updated ::already-up-to-date} (:event %))))
            (latest-entry)
            :installed-version))
 
@@ -144,13 +145,19 @@
   (def repo-slug (:repo-slug config))
   )
 
+(def ^:private archive-extensions
+  #{".zip" ".gz" ".bz2" ".jar" ".tar"})
+
+(defn- trim-extensions
+  [fname]
+  (if-let [ext (first (filter #(str/ends-with? fname %) archive-extensions))]
+    (trim-extensions (subs fname 0 (- (count fname) (count ext))))
+    fname))
+
 (defn- split-asset-name
   [asset-name]
   (-> asset-name
-      (as-> a (str/replace a (fs/extension a) ""))
-      (as-> a (if (str/ends-with? a ".tar")
-                (subs a 0 (- (count a) (count ".tar")))
-                a))
+      (trim-extensions)
       (str/split
         (re-pattern
           (if (< (count (filter #{\-} asset-name))
@@ -298,11 +305,13 @@
 (comment
   (def app-key updog.main/app-key)
   (def config updog.main/app-config)
+
   (def config (config/app-prep {} :walterl/updog))
   (def config (config/app-prep
                 {:asset "linux-amd64.zip.sha256"
                  :install-dir "~/tmp/updog-test/bin"}
                 :clj-kondo/clj-kondo))
+
   (def upd (process config))
   *e
   ,)
