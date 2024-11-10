@@ -21,13 +21,13 @@
 
 (def ^:dynamic *update-log-filename* nil)
 
-(defonce custom-log-filename (atom nil))
+(defonce custom-update-log (atom nil))
 
 (defn- update-log-filename
   []
   (fs/expand-home
     (or *update-log-filename*
-        @custom-log-filename
+        @custom-update-log
         (fs/path (data-dir) "update-log.edn"))))
 
 (defn- read-update-log

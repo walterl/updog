@@ -1,6 +1,6 @@
 (ns updog.main
   (:require
-    [expound.alpha :as expound]
+    [clojure.string :as str]
     [taoensso.encore :as enc]
     [taoensso.timbre :as log]
     [updog.app :as app]
@@ -38,15 +38,18 @@
   "See `(clojure.repl/doc log/*config*)` for documentation on log levels."
   [log-level]
   (log/swap-config! #(assoc % :output-fn simple-output-fn))
-  (log/set-level! (or log-level default-log-level)))
+  (log/set-level! (or log-level default-log-level))
+  (log/debug "Logging initialized with log leve" log-level))
 
-(defn- log-update-result
-  [{::keys [config result]}]
-  (let [{:keys [app-key]} config
+(defn- log-app-update-result
+  [result app-config]
+  (let [{:keys [app-key]} app-config
         {:keys [status]} result]
     (cond
       (= status ::app/app-updated)
-      (log/info "✅" app-key "updated")
+      (do
+        (log/info "✅" app-key "updated to version" (:installed-version result))
+        (log/info "📄 Installed files:" (str/join ", " (:installed-files result))))
 
       (= status ::app/already-up-to-date)
       (log/info "🟰" app-key "already up-to-date:" (:installed-version result))
@@ -58,13 +61,11 @@
       (log/warn "Unexpected update status:" status))))
 
 (defn update-apps!
-  [{:updog/keys [defaults] :as config}]
+  [config]
   (doall
-    (for [[app-key app-config] config
-          :let [result {::config app-config
-                        ::result (app/process app-config)}]]
-      (do
-        (log-update-result result)
+    (for [app-config (vals config)]
+      (let [result (app/process app-config)]
+        (log-app-update-result result app-config)
         result))))
 
 (defn- prepped-app-configs
@@ -82,14 +83,16 @@
         config (dissoc config :updog/config)]
     (init-logging! (get updog-config :log-level default-log-level))
     (when-let [log-fname (:update-log-file updog-config)]
-      (reset! app/custom-log-filename log-fname))
+      (reset! app/custom-update-log log-fname)
+      (log/debug "Using custom update log:" log-fname))
     (try
-      (update-apps! (prepped-app-configs config))
+      (log/debug "Loaded config:" (pr-str config))
+      (let [pconfig (prepped-app-configs config)]
+        (log/debug "Prepared config:" (pr-str pconfig))
+        (update-apps! pconfig))
       (catch ExceptionInfo ex
-        (let [data (ex-data ex)]
-          (if (= ::config/invalid-app-config (:type data))
-            (expound/printer (:explain-data data))
-            (log/error "Error updating apps:" ex)))))))
+        (log/error "Error updating apps:" ex)
+        (System/exit 1)))))
 
 (comment
   (def config-fname "test-config.edn")
