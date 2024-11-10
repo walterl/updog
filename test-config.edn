@@ -1,8 +1,0 @@
-{:updog/defaults
- {:install-dir "~/tmp/updog-test/bin"}
-
- :clj-kondo/clj-kondo
- {:archive-dir "~/tmp/updog-test/archive/Clojure"}
-
- :clojure-lsp/clojure-lsp
- {}}

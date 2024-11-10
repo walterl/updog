@@ -1,0 +1,16 @@
+{:updog/config {:log-level :debug}
+
+ :updog/defaults
+ {:install-dir "~/.local/bin"
+  :archive-dir "~/Downloads"
+  :chmod 0755}
+
+ ;; Clojure apps
+ :babashka/babashka {:archive-dir "~/Downloads/Clojure"}
+ :clj-kondo/clj-kondo {:archive-dir "~/Downloads/Clojure"}
+ :clojure-lsp/clojure-lsp {:archive-dir "~/Downloads/Clojure"}
+ :borkdude/jet {:archive-dir "~/Downloads/Clojure"}
+
+ :denoland/deno {}
+ :sharkdp/bat {}
+ }
