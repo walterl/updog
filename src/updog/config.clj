@@ -4,6 +4,7 @@
     [clojure.edn :as edn]
     [clojure.spec.alpha :as s]
     [medley.core :as m]
+    [taoensso.timbre :as log]
     [updog.fs :as fs]
     [updog.github :as gh]))
 
@@ -59,7 +60,7 @@
   [dir]
   (if (= ::infer dir)
     (let [write-dir (first (filter fs/writeable-dir? (fs/sys-path-dirs)))]
-      (println (str "[WARNING] Using install directory from $PATH: " write-dir))
+      (log/warn "Using install directory from $PATH:" write-dir)
       write-dir)
     dir))
 

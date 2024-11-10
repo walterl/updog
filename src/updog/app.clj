@@ -5,13 +5,13 @@
     [clojure.pprint :refer [pprint]]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
+    [taoensso.timbre :as log]
     [updog.archive :as archive]
     [updog.config :as config]
     [updog.fs :as fs]
     [updog.github :as gh]
     [updog.net :as net])
   (:import
-    [clojure.lang ExceptionInfo]
     [java.time ZonedDateTime]
     [java.time.format DateTimeFormatter]))
 
@@ -115,8 +115,7 @@
   [config]
   (let [installed (installed-version config)
         latest (latest-version config)]
-    (println "Installed version:" installed)
-    (println "Latest version:" latest)
+    (log/debug "Installed version:" installed "| Latest version:" latest)
     (or (empty? (command-candidates config))
         (nil? installed)
         ;; If the latest published version is different than the one we have, we
@@ -236,8 +235,9 @@
       (fs/copy dl-dest arch-dest))))
 
 (defn update!
-  [{:keys [archive-dir] :as config}]
-  (println "Update!" (pr-str config))
+  [{:keys [app-key archive-dir] :as config}]
+  (log/info "Updating app" app-key)
+  (log/debug "Update app config:" config)
   (let [{:keys [download-url tag-name], asset-name :name} (first (latest-release-assets config))
         dl-dest (net/download-file download-url (asset-filename asset-name))
         installed-files (vec (install-asset dl-dest config))]
@@ -255,7 +255,6 @@
                  (try
                    (update! config)
                    (catch Exception e
-                     (println "Error!" e)
                      {:status ::unexpected-error, :error e}))
                  {:status ::already-up-to-date, :config config})]
     (log-update! result config)

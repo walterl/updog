@@ -7,16 +7,6 @@
     [updog.config :as config])
   (:gen-class))
 
-(defn update-apps!
-  [{:updog/keys [defaults] :as config}]
-  (for [[app-key app-config] config
-        :when (not= :updog/defaults app-key)
-        :let [config (-> (merge defaults app-config)
-                         (config/app-prep app-key))]]
-    {::key app-key
-     ::config config
-     ::result (app/process config)}))
-
 (def ^:private level-marker
   {:trace  "[🔍 TRACE]"
    :debug  "[🪲 DEBUG]"
@@ -48,10 +38,40 @@
    (when log-level
      (log/set-level! log-level))))
 
+(defn- log-update-result
+  [{::keys [config result]}]
+  (let [{:keys [app-key]} config
+        {:keys [status]} result]
+    (cond
+      (= status ::app/app-updated)
+      (log/info app-key "updated ✅")
+
+      (= status ::app/already-up-to-date)
+      (log/info app-key "already up-to-date 🟰")
+
+      (= status ::app/unexpected-error)
+      (log/error "An unexpected error has occurred:" (:error result))
+
+      :else
+      (log/warn "Unexpected update status ❓:" status))))
+
+(defn update-apps!
+  [{:updog/keys [defaults] :as config}]
+  (doall
+    (for [[app-key app-config] config
+          :when (not= :updog/defaults app-key)
+          :let [config (-> (merge defaults app-config)
+                           (config/app-prep app-key))
+                result {::config config
+                        ::result (app/process config)}]]
+      (do
+        (log-update-result result)
+        result))))
+
 (defn -main
   [config-fname]
   (init-logging!)
-  (pprint (update-apps! (config/read config-fname))))
+  (update-apps! (config/read config-fname)))
 
 (comment
   (def config-fname "test-config.edn")
