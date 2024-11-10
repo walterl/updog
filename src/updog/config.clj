@@ -26,8 +26,7 @@
                              :files (s/coll-of string?)))
 (def ^:private rx-digits #"^[0-7]+$")
 (def ^:private rx-mode #"[ugoa]*([-+=]([rwxXst]*|[ugo]))+|[-+=][0-7]+") ; From chmod(1)
-(s/def ::chmod (s/nilable (s/or :octal-mode (s/and string? #(re-matches rx-digits %))
-                                :str-mode   (s/and string? #(re-matches rx-mode %)))))
+(s/def ::chmod (s/nilable nat-int?))
 (s/def ::archive-dir (s/nilable (s/and string? writeable-dir?)))
 
 (s/def ::app (s/keys :req-un [::source ::asset ::install-dir ::install-files]
@@ -41,7 +40,7 @@
               :install-dir ""
               :install-files ::infer
               :repo-slug "foo/bar"
-              :chmod "0750"
+              :chmod 0750
               :archive-dir ""})
   ,)
 
@@ -49,7 +48,8 @@
   {:source        :github-release
    :asset         ::infer
    :install-dir   ::infer
-   :install-files ::infer})
+   :install-files ::infer
+   :chmod         0750})
 
 (defn- wrap-vec-str
   [x]

@@ -14,7 +14,8 @@
               :asset ::cfg/infer
               :install-dir "/tmp"
               :install-files ::cfg/infer
-              :repo-slug "walterl/updog"}
+              :repo-slug "walterl/updog"
+              :chmod 0750}
              (cfg/app-prep {} :walterl/updog))))
     (testing "fails on invalid input config"
       (try
