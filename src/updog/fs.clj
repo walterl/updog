@@ -7,6 +7,7 @@
 
 (def chmod fs/chmod)
 (def copy fs/copy+)
+(def delete fs/delete)
 (def exists? fs/exists?)
 (def executable? fs/executable?)
 (def extension (fnil fs/extension ""))
