@@ -37,6 +37,13 @@
      (edn/read-string (slurp fname))
      [])))
 
+(defn- latest-entry
+  [update-log]
+  (->> update-log
+       (map #(assoc % :unix-timestamp (.toEpochSecond (ZonedDateTime/parse (:timestamp %)))))
+       (sort-by :unix-timestamp)
+       (last)))
+
 (defn- now
   []
   (.format (ZonedDateTime/now) DateTimeFormatter/ISO_OFFSET_DATE_TIME))
@@ -56,7 +63,7 @@
     (update-log-filename)
     (with-out-str (pprint (conj (read-update-log) (log-entry upd config))))))
 
-(defn- command-candidates
+(defn- existing-command-candidates
   "Returns existing `install-files` in `install-dir`, including files named for
   `app-key`'s name or namespace."
   [{:keys [app-key install-dir install-files]}]
@@ -67,6 +74,15 @@
                  (namespace app-key)]])
        (map #(fs/path install-dir %))
        (filter fs/exists?)))
+
+(defn- previously-installed-files
+  ([config]
+   (previously-installed-files config (read-update-log)))
+  ([{:keys [app-key]} update-log]
+   (some->> update-log
+            (filter #(and (= app-key (:app-key %)) (contains? % :installed-files)))
+            (latest-entry)
+            :installed-files)))
 
 (defn cmd-version
   "Get version from running `cmd --version`."
@@ -91,11 +107,8 @@
 (defn- last-installed-version
   [app-key update-log]
   (some->> update-log
-           (filter #(and (= app-key (:app-key %))
-                         (= ::app-updated (:event %))))
-           (map #(assoc % :unix-timestamp (.toEpochSecond (ZonedDateTime/parse (:timestamp %)))))
-           (sort-by :unix-timestamp)
-           (last)
+           (filter #(and (= app-key (:app-key %)) (= ::app-updated (:event %))))
+           (latest-entry)
            :installed-version))
 
 (defn installed-version
@@ -103,7 +116,9 @@
    (installed-version config (read-update-log)))
   ([{:keys [app-key] :as config} update-log]
    (or (last-installed-version app-key update-log)
-       (when-let [cmd (first (command-candidates config))]
+       (when-let [cmd (first (previously-installed-files config))]
+         (cmd-version cmd))
+       (when-let [cmd (first (existing-command-candidates config))]
          (cmd-version cmd)))))
 
 (defn latest-version
@@ -114,7 +129,8 @@
 (defn- requires-update?
   [config installed-version latest-version]
   (log/debug "Installed version:" installed-version "| Latest version:" latest-version)
-  (or (empty? (command-candidates config))
+  (or (and (empty? (existing-command-candidates config))
+           (empty? (filter fs/exists? (previously-installed-files config))))
       (nil? installed-version)
       ;; If the latest published version is different than the one we have, we
       ;; should probably change to it, regardless of whether it's semantically

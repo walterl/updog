@@ -1,6 +1,5 @@
 (ns updog.main
   (:require
-    [clojure.pprint :refer [pprint]]
     [taoensso.encore :as enc]
     [taoensso.timbre :as log]
     [updog.app :as app]
@@ -47,7 +46,7 @@
       (log/info "✅" app-key "updated")
 
       (= status ::app/already-up-to-date)
-      (log/info "🟰" app-key "already up-to-date at version" (:installed-version result))
+      (log/info "🟰" app-key "already up-to-date:" (:installed-version result))
 
       (= status ::app/unexpected-error)
       (log/error "An unexpected error has occurred:" (:error result))
