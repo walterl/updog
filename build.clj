@@ -1,17 +1,31 @@
 (ns build
-  (:refer-clojure :exclude [test])
-  (:require [org.corfield.build :as bb]))
+  (:require [clojure.tools.build.api :as b]))
 
 (def lib 'net.clojars.walterl/updog)
-(def version "0.3.0-SNAPSHOT")
-(def main 'updog.core)
+(def version (format "0.3.%s" (b/git-count-revs nil)))
+(def class-dir "target/classes")
+(def basis (b/create-basis {:project "deps.edn"}))
+(def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
 
-(defn test "Run the tests." [opts]
-  (bb/run-tests opts))
+(defn clean
+  [_]
+  (println "Deleting 'target' dir...")
+  (b/delete {:path "target"})
+  (println "Done ✅"))
 
-(defn ci "Run the CI pipeline of tests (and build the uberjar)." [opts]
-  (-> opts
-      (assoc :lib lib :version version :main main)
-      (bb/run-tests)
-      (bb/clean)
-      (bb/uber)))
+(defn uber
+  [_]
+  (clean nil)
+  (printf "Preparing target dir (%s)...\n" class-dir)
+  (b/copy-dir {:src-dirs ["src" "resources"]
+               :target-dir class-dir})
+  (println "Compiling...")
+  (b/compile-clj {:basis basis
+                  :src-dirs ["src"]
+                  :class-dir class-dir})
+  (println (format "Building JAR at %s..." uber-file))
+  (b/uber {:class-dir class-dir
+           :uber-file uber-file
+           :basis basis
+           :main 'updog.main})
+  (println "Done ✅"))
