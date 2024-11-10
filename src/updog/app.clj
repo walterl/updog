@@ -51,7 +51,7 @@
 (defn- log-entry
   [upd config]
   (merge
-    (select-keys upd [:installed-version :installed-files :asset-download-url :asset-downloaded-to])
+    (select-keys upd [:installed-version :installed-files :download-url :downloaded-to])
     (select-keys config [:app-key :archive-dir])
     {:event (:status upd)
      :timestamp (now)}))
