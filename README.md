@@ -2,28 +2,22 @@
 
 !["What's updog?"](./updog.jpg)
 
-Your watchdog for updates of software without updates.
-
-Updog manages and records updates to software that is distributed _outside_ of
-software repositories or app stores. For example, notably, software distributed
-as GitHub releases.
+Updog downloads and installs binary distributions from GitHub releases.
 
 
 ## Project status
-I've only just started using this myself, so consider it alpha-verging-on-beta
-quality.
+Works for me in personal use cases. `¯\_(ツ)_/¯`
 
 
 ## Usage
 
-    $ cat > apps.edn <<EOF
-    {:clj-kondo/clj-kondo
-     {:asset "linux-static-amd64"}}
+    $ cat > config.edn <<EOF
+    {:clj-kondo/clj-kondo {:install-dir "~/.local/bin"}}
     EOF
-    $ java -jar updog.jar apps.edn
-    Found existing clj-kondo version v2022.06.22 at /home/user/.local/bin/clj-kondo
-    Updating app clj-kondo to version v2022.08.03...
-    App clj-kondo updated to version v2022.08.03
+    $ java -jar updog.jar config.edn
+    [ℹ️  INFO] ⚙️  Updating app :clj-kondo/clj-kondo
+    [ℹ️  INFO] ✅ :clj-kondo/clj-kondo updated to version v2024.09.27
+    [ℹ️  INFO] 📄 Installed files: /home/user/.local/bin/clj-kondo
 
 
 ## Installation
@@ -31,96 +25,136 @@ Download from JAR from [releases](https://github.com/walterl/updog/releases/late
 
 
 ## Configuration
-Updog's configuration is stored in an [EDN](https://github.com/edn-format/edn)
-file and contains data about the apps to update.
+Updog's configuration is an [EDN](https://github.com/edn-format/edn) file that
+contains Updog settings and data about apps to update.
+
+See `example-config.edn` for a realistic example configuration.
+
+### Settings
+Updog settings can be specified under a special `:updog/config` key. The
+following example shows the currently supported options:
+
+```clojure
+{:updog/config
+ {:log-level :debug
+  :update-log-file "~/.update-log.edn"}}
+```
+
+#### `:log-level`
+Default value: `:info`
+
+The minimum log level of messages to output. Can be one of `:trace`, `:debug`,
+`:info`, `:warn`, `:error`, `:fatal` or `:report`.
+
+#### `:update-log-file`
+Default: `~/.local/share/updog/update-log.edn`
+
+Where to store Updog's update log file.
+
+### Apps
 
 Let's start with a simple example:
 
 ```clojure
-{:clj-kondo/clj-kondo
- {:asset "linux-static-amd64"}}
+{:clj-kondo/clj-kondo {}}
 ```
 
 This configuration will fetch releases from
 <https://github.com/clj-kondo/clj-kondo> (derived from the
-`:clj-kondo/clj-kondo` key), selecting the asset `linux-static-amd64` in its
-file name.
+`:clj-kondo/clj-kondo` key), selecting the most appropriate asset for the
+machine that Updog is running on.
 
-Let's expand that same example to include all the supported options:
+Let's expand that example to include all the supported options:
 
 ```clojure
 {:clj-kondo/clj-kondo
- {:source        :github-release
-  :github-repo   "clj-kondo/clj-kondo"
-  :asset         "linux-static-amd64"
-  :install-dir   "~/.local/bin/"
-  :install-files ["clj-kondo"]
-  :chmod         "0750"
-  :archive-dir   "/nas/github_releases/"}}
+ {:source :github-release
+  :asset :updog/infer
+  :install-dir "/home/user/.local/bin"
+  :install-files :updog/infer
+  :archive-dir "/home/user/Downloads"
+  :chmod 0750
+  :repo-slug "clj-kondo/clj-kondo"}}
 ```
+
+### `:source`
+- Default: `:github-release`
 
 The `:source` key defines which source the app can be retrieved from. For now
 `:github-release` is the only supported value.
 
-`:github-repo` tells Updog which GitHub repo to use. It defaults to the app
-key, as in the simple example.
+### `:asset`
+- Default: `:updog/infer`
 
-The release asset that has the value of `:asset` in its filename will be
-downloaded. The value can also be a vector e.g. `["linux-static-amd64"
-"linux"]`. If not specified, the first listed asset is downloaded.
+A string (e.g. `"linux-static"`) or vector of strings (e.g. `["linux-static"
+"linux"]`) used to filter release assets. The first asset containing the
+specified string(s) is installed. Strings are not patterns.
 
-`:install-dir` tells Updog where to install the app. If not specified, Updog
-will select the first writable directory in `$PATH`.
+If not specified, it defaults to `:updog/infer`, which tries to infer the most
+appropriate asset from information like the computer's platform and
+architecture.
 
-`:install-files` lists the files in the release archive to install in
-`:install-dir`. If not specified, Updog tries to infer it:
-- If the release asset is a zip or tarball archive:
-  - Use the first executable file in the archive with the same name as the
-    project repo (the second `clj-kondo` in `clj-kondo/clj-kondo`).
-  - Use the first executable file in the archive with the same name as the
-    GitHub user/org (the first `clj-kondo` in `clj-kondo/clj-kondo`).
-  - Use the first executable file in the archive.
-  - Use the first file in the archive.
-- Otherwise, if the release is a binary file, assume that it's the executable
-  we're looking for.
+In most cases the default (`:updog/infer`) should be sufficient.
 
-The installed app binary has its permissions set to the value of `:chmod`, if
-specified.
+### `:install-dir`
+- Default: The first writable directory in `$PATH`.
 
-The downloaded _asset file_ is moved to `:archive-dir`, if specified.
+The directory to install binaries from downloaded assets to.
+
+### `:install-files`
+- Default: `:updog/infer`
+
+`:install-files` lists the file names from a downloaded release asset archive
+to install in `:install-dir`.
+
+If not specified or `:updog/infer`, Updog will install all executable files
+in a downloaded asset archive. If no executable files are found in the archive,
+the largest file is assumed to be the binary.
+
+### `:archive-dir`
+Default: unset
+
+The downloaded `:asset` is copied to `:archive-dir`, if specified.
+
+### `:chmod`
+Default: `0750`
+
+Installed binaries have their permissions set to the value of `:chmod`.
+
+### `:repo-slug`
+Default: the same as the app key, e.g. `"clj-kondo/clj-kondo"`
+
+Use this to override the GitHub repo slug that releases are downloaded form.
+
+There isn't much reason to use this.
 
 ### Default configuration values
-You can set configuration defaults under the `:updog/defaults` key.
-
-Setting defaults values for `:archive-dir`, `:chmod`, and `:install-dir`, the above
-configuration becomes this:
+Defaults for any of the above configuration options can be set under the
+`:updog/defaults` key. For example, setting defaults values for `:archive-dir`,
+`:chmod`, and `:install-dir`, the above configuration becomes this:
 
 ```clojure
 {:updog/defaults
  {:install-dir "~/.local/bin/"
-  :chmod       "0750"
+  :chmod       0755
   :archive-dir "/nas/github_releases/"}
 
- :clj-kondo/clj-kondo
- {:source        :github-release
-  :github-repo   "clj-kondo/clj-kondo"
-  :asset         "linux-static-amd64"
-  :install-files ["clj-kondo"]}}
+ :clj-kondo/clj-kondo {}}
 ```
 
-Removing inferable keys, and moving `:asset` to `:updog/defaults`, the
-configuration becomes this:
-
-```clojure
-{:updog/defaults
- {:asset       ["linux-static-amd64" "linux-amd64-static" "linux-amd64" "linux-x64" "linux"]
-  :install-dir "~/.local/bin/"
-  :chmod       "0750"
-  :archive-dir "/nas/github_releases/"}
-
- :clj-kondo/clj-kondo
- {}}
-```
+## TODO
+- [ ] Allow renaming of binaries extracted from downloaded asset archives.
+- [ ] Allow renaming of archived assets to avoid accumulation of downloads.
+- [ ] Add hooks for running arbitrary commands:
+  - Pre-update
+  - Asset selection
+  - Asset downloaded
+  - Selection of files to install
+  - Binaries installed
+  - Update failed
+- [ ] Add support for downloading uncompressed binaries.
+- [ ] Add support for releases from other forge sites: Gitea, Forgero, sr.ht
+- [ ] Allow specifying per-app command to get the current version from an app binary.
 
 ## License
 [GPLv3](./LICENSE.md)
