@@ -15,7 +15,7 @@
 (def writeable-dir? (comp fs/writeable-dir? fs/expand-home))
 
 ;; TODO Add generators for all relevant specs below
-(s/def ::infer #{::infer})
+(s/def ::infer #{:updog/infer})
 
 (s/def ::source #{:github-release})
 (s/def ::asset (s/or :infer ::infer
@@ -39,7 +39,7 @@
               :source :github-releasex
               :asset [""]
               :install-dir ""
-              :install-files ::infer
+              :install-files :updog/infer
               :repo-slug "foo/bar"
               :chmod 0750
               :archive-dir ""})
@@ -47,9 +47,9 @@
 
 (def default
   {:source        :github-release
-   :asset         ::infer
-   :install-dir   ::infer
-   :install-files ::infer
+   :asset         :updog/infer
+   :install-dir   :updog/infer
+   :install-files :updog/infer
    :chmod         0750})
 
 (defn- wrap-vec-str
@@ -58,7 +58,7 @@
 
 (defn- maybe-find-install-dir
   [dir]
-  (if (= ::infer dir)
+  (if (= :updog/infer dir)
     (let [write-dir (first (filter fs/writeable-dir? (fs/sys-path-dirs)))]
       (log/warn "Using install directory from $PATH:" write-dir)
       write-dir)

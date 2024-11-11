@@ -11,9 +11,9 @@
     (testing "empty config generates default config"
       (is (= {:app-key :walterl/updog
               :source :github-release
-              :asset ::cfg/infer
+              :asset :updog/infer
               :install-dir "/tmp"
-              :install-files ::cfg/infer
+              :install-files :updog/infer
               :repo-slug "walterl/updog"
               :chmod 0750}
              (cfg/app-prep {} :walterl/updog))))

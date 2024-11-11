@@ -210,7 +210,7 @@
 (defn- latest-release-assets
   [{:keys [app-key asset repo-slug]}]
   (let [assets (gh/fetch-release-assets repo-slug)]
-    (if (= ::config/infer asset)
+    (if (= :updog/infer asset)
       (most-applicable assets app-key)
       (for [asset-substr asset
             {asset-name :name, :as asset} assets
@@ -239,14 +239,14 @@
 (defn- install-asset-files
   "Extract `install-files` from `archive-filename` into `install-dir`.
 
-  If `install-files` is `:updog.config/infer`, all executable files in the
+  If `install-files` is `:updog/infer`, all executable files in the
   archive, or the largest file in the archive is used.
 
   Returns paths to extracted files."
   [archive-filename {:keys [install-dir install-files]}]
   (archive/extract
     archive-filename
-    (if (= ::config/infer install-files)
+    (if (= :updog/infer install-files)
       (or (seq (archive/list-executables archive-filename))
           (archive/largest-file archive-filename))
       install-files)
