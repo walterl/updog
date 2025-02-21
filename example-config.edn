@@ -1,0 +1,18 @@
+{:updog/config ; Special key to set Updog settings
+ {:log-level       :debug
+  :update-log-file "~/.update-log.edn"}
+
+ :updog/defaults ; These options are applied to all apps
+ {:install-dir "~/.local/bin"
+  :archive-dir "~/Downloads"
+  :chmod       0755}
+
+ ;; Clojure apps (overrides default :archive-dir)
+ :babashka/babashka       {:archive-dir "~/Downloads/Clojure"}
+ :clj-kondo/clj-kondo     {:archive-dir "~/Downloads/Clojure"}
+ :clojure-lsp/clojure-lsp {:archive-dir "~/Downloads/Clojure"}
+ :borkdude/jet            {:archive-dir "~/Downloads/Clojure"}
+
+ :denoland/deno {}
+ :sharkdp/bat   {}
+ }

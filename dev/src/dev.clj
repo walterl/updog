@@ -1,19 +1,17 @@
 (ns dev
-  (:require [clojure.java.io :as io]
-            [integrant.core :as ig]
-            [integrant.repl :as ig.repl :refer [clear go halt init prep reset]]
-            [integrant.repl.state :refer [config system]]
-            [updog.system :as sys]))
+  (:require
+    [clojure.spec.alpha :as s]
+    [expound.alpha :as expound]
+    [lambdaisland.classpath.watch-deps :as watch-deps]
+    [pjstadig.humane-test-output :as humane]
+    [updog.main :as main]))
 
-(clojure.tools.namespace.repl/set-refresh-dirs "dev/src" "src" "test")
+(main/init-logging! :debug)
+(watch-deps/start! {:aliases [:dev :test]})
+(humane/activate!)
+#_(alter-var-root #'s/*explain-out* (constantly s/explain-printer))
+(alter-var-root #'s/*explain-out* (constantly expound/printer))
 
-(def dev-config
-  (atom {}))
-
-(ig.repl/set-prep! #(deref dev-config))
-
-(defn load-config!
-  [opts]
-  (let [config (sys/load-config! opts)]
-    (reset! dev-config config)
-    config))
+(comment
+  ;;; Scratchpad
+  ,)
