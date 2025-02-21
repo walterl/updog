@@ -87,8 +87,8 @@ The `:source` key defines which source the app can be retrieved from. For now
 - Default: `:updog/infer`
 
 A string (e.g. `"linux-static"`) or vector of strings (e.g. `["linux-static"
-"linux"]`) used to filter release assets. The first asset containing the
-specified string(s) is installed. Strings are not patterns.
+"linux"]`) used to filter release assets. The first asset containing any of the
+specified sub-string(s) is installed. Strings are not interpreted as patterns.
 
 If not specified, it defaults to `:updog/infer`, which tries to infer the most
 appropriate asset from information like the computer's platform and
@@ -124,12 +124,12 @@ Installed binaries have their permissions set to the value of `:chmod`.
 ### `:repo-slug`
 Default: the same as the app key, e.g. `"clj-kondo/clj-kondo"`
 
-Use this to override the GitHub repo slug that releases are downloaded form.
+Use this to override the GitHub `<user>/<repo>` slug that releases are downloaded form.
 
-There isn't much reason to use this.
+There isn't much reason to set this, but is used internally.
 
-### Default configuration values
-Defaults for any of the above configuration options can be set under the
+### Global default values
+Global defaults for any configuration options can be set under the
 `:updog/defaults` key. For example, setting defaults values for `:archive-dir`,
 `:chmod`, and `:install-dir`, the above configuration becomes this:
 
@@ -153,8 +153,16 @@ Defaults for any of the above configuration options can be set under the
   - Binaries installed
   - Update failed
 - [ ] Add support for downloading uncompressed binaries.
-- [ ] Add support for releases from other forge sites: Gitea, Forgero, sr.ht
+- [ ] Add support for releases from other sources: local directory, Gitea, Forgero, sr.ht
 - [ ] Allow specifying per-app command to get the current version from an app binary.
+
+## Development
+
+### Running tests
+    clojure -M:test
+
+### Building jars
+    clojure -T:build
 
 ## License
 [GPLv3](./LICENSE.md)
